@@ -10,7 +10,7 @@ $$
 
 describes relation between **probability** ($x$-axis) and **information** ($y$=axis). It must satisfy two properties:
 
-- it is a decreasing function within range $(0, 1]$, where $f(0) \approx +\infin$ , $f(1) = 0$.
+- it is a decreasing function within range $(0, 1]$, where $f(0) \approx +\infty$ , $f(1) = 0$.
 
 - it satisfy addition law, $f(x \cdot y) = f(x) + f(y)$
 
