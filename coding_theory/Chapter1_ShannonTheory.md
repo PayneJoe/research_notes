@@ -1,4 +1,4 @@
-# Background
+# Basic Concepts
 
 ## Information
 
@@ -14,8 +14,6 @@ describes relation between **probability** ($x$-axis) and **information** ($y$=a
 
 - it satisfy addition law, $f(x \cdot y) = f(x) + f(y)$
 
-
-
 For example given a specific **event probability** $P(X = x_0) = 1/4$, then the information is measured:
 
 $$
@@ -27,8 +25,6 @@ $$
 ## Entropy
 
 Entropy means **expected** information, or **expected** uncertainity of an event $X$ with specified **probability distribution**. 
-
-
 
 For example given a probability distribution of an event $X$, say:
 
@@ -67,8 +63,6 @@ $$
 
 assuming the input event $X$ probability distribution is $P(X = 0) = P(X = 1) = 1/2$, then the conditional entropy $H(Y|X) = - \frac{1}{2} \cdot (\frac{3}{4} \log \frac{3}{4} + \frac{1}{4} \log \frac{1}{4} + 2 \cdot \frac{1}{2} \log \frac{1}{2})$.
 
-
-
 ## Joint Entropy
 
 Joint entropy means expected information gained from both input event $X$ (or $Y$) and output event $Y$ (or $X$):
@@ -77,9 +71,9 @@ $$
 H(X, Y) = H(X) + H(Y|X) = H(Y) + H(X|Y)
 $$
 
-
-
 ## Mutual Information
+
+![Mutual Information](./mutual_information.png)
 
 Mutual information measures information of output event $Y$ conveyed by input event $X$, or vice versa:
 
@@ -89,20 +83,34 @@ $$
 
 Note that, **mutual information is not entropy**, it's the gap between the information of output event $Y$ and the information of output event $Y$ knowing input event $X$!
 
-
-
 For example, according to above conditional probability matrix $p_{ij}$, the output event $Y$ probability is $P(Y = 0) = 3/8, P(Y = 1) = 1/4, P(Y = *) = 3/8$ . Then information of output event $H(Y) = - 2 \cdot \frac{3}{8} \log \frac{3}{8} - \frac{1}{4} \log \frac{1}{4}$. The mutual information can be calculated with:
 
 $$
 I(X, Y) = H(Y) - H(Y|X)
 $$
 
-
-
 But why this gap exists anyway? I think this is the meaning of information theory...
 
+# Advanced Concepts
 
+## Transmision Rate
 
+![Transmision Rate](./transmision_rate.png)
 
+Few definitions:
 
+- a **symbol** is denoted as $s_i$.
 
+- a **symbol** set with size $r$ is denoted as $A = \{s_0, s_1, ..., s_r\}$.
+
+- A code with $n$ symbols, $C$ which is  constructed through a symbol set $A$, is a subset of $A^n$. i.e. $C \subset A^n$.
+
+Transmision **Rate** is defined as:
+
+$$
+R = \frac{\log_r |C|}{n}
+$$
+
+Observing that **Rate** is not relevant with Channel, it is a characteristic of **Code**. More importantly, Code is a particular subset (subgroup) of symbol space, and it has many interesting and critical properties.
+
+## Capacity
