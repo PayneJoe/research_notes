@@ -93,6 +93,40 @@ But why this gap exists anyway? I think this is the meaning of information theor
 
 # Advanced Concepts
 
+## Maximum Likelihood Decoding
+
+The probability of correct decoding is:
+
+$$
+P_{COR} = \sum_{j} q_j \cdot q_{\Delta(j)j}
+$$
+
+where
+
+$$
+q_{\Delta(j)j} = P(X = s_{\Delta(j)} | Y = t_j)
+$$
+
+$P_{COR}$  is the expected probability of decoding a receiving word $v = t_j$ correctly, i.e. $s_{\Delta(j)} = u$, where $u$ is the actual sending word corresponded with receiving word $v$. Applying **Maximum Likelihood Decoding** we can easily get to know which $\Delta(j)$ points to? $p_{\Delta(j)j} \ge p_{ij}$.
+
+
+
+For example, sending word $u \in S = \{0, 1\}^1$, receiving word $v \in T = \{0, 1, *\}^1$, have the following map:
+
+![Correct Decoding](./correct_decode.png)
+
+According to **Maximum Likelihood Decoding**, if we decode $v = 0$ to $\Delta(v = 0) = 0$, then we say this decoding is correct. Similarly if we decode $v = 1$ to $\Delta(v = 1) = 1$, and decode $v = *$ to $\Delta(v = *) = 1$, then we say these decodings are correct.
+
+
+
+The expected probability of correct **Maximum Likelihood Decoding** for any receiving word $v$ can be calculated if we know the distribution of $Y$ (for example $p(Y = 0, 1, *) = 3/8, 1/4, 3/8$), or $X$ :
+
+$$
+P_{COR} = \sum_{j} q_j \cdot q_{\Delta(j)j} = 3/8 * 1 + 1/4 * 1 + 3/8 * 2/3 = 7/8
+$$
+
+ 
+
 ## Transmision Rate
 
 ![Transmision Rate](./transmision_rate.png)
@@ -171,7 +205,5 @@ equally $\sum_{i = 0}^{\lfloor \lambda \cdot n \rfloor} \binom{n}{i} \le (\frac{
 $$
 \sum_{i = 0}^{\lfloor \lambda \cdot n \rfloor} \binom{n}{i} \le 2^{n \cdot (-\lambda \log_2{\lambda} - (1 - \lambda) \log_2{(1 - \lambda)}))} = 2^{n \cdot h(\lambda)}
 $$
-
-
 
 ## Theorem 1.12
