@@ -111,6 +111,67 @@ $$
 R = \frac{\log_r |C|}{n}
 $$
 
-Observing that **Rate** is not relevant with Channel, it is a characteristic of **Code**. More importantly, Code is a particular subset (subgroup) of symbol space, and it has many interesting and critical properties.
+Observing that **Rate** is not relevant with **Channel**, it is a characteristic of **Code**. More importantly, Code is a particular subset (subgroup) of whole code space, and it has many interesting and critical properties.
 
 ## Capacity
+
+Given a **Channel** $\Gamma$ (fixed conditional distribution):
+
+$$
+\Lambda = \max I(X, Y)
+$$
+
+maximising over all input and output probability distributions $p_i$ and $q_j$, we get the **capacity** of a channel.
+
+$$
+\max I(X, Y) = \max_{X \backsim D_X} H(X) - H(X|Y) = \max_{Y \backsim D_Y} H(Y) - H(Y|X)
+$$
+
+Obverving that **Capacity** is a characteristic of a specific channel.
+
+More specially, **capacity** of binary symmetric channel (**BSC**) is:
+
+$$
+\Gamma_b = 1 + \phi \cdot \log \phi + (1 - \phi) \cdot \log (1 - \phi)
+$$
+
+where $\phi$ denotes the probability that a symbol does not change through this channel.
+
+|     | 0          | 1          |
+| --- | ---------- | ---------- |
+| 0   | $\phi$     | $1 - \phi$ |
+| 1   | $1 - \phi$ | $\phi$     |
+
+# Shannon Theorem
+
+## Lemma 1.11
+
+For $0 < \lambda \le \frac{1}{2}$,
+
+$$
+\sum_{i = 0}^{\lfloor \lambda \cdot n \rfloor} \binom{n}{i} \le 2^{n \cdot h(\lambda)}
+$$
+
+#### Proof
+
+According to binomial theorem, we have:
+
+$$
+\begin{aligned}
+1 &= (\lambda + 1 - \lambda)^n \\\
+&= \sum_{i = 0}^n \binom{n}{i} \lambda^i \cdot (1 - \lambda)^{(n - i)} \\\
+&= \sum_{i = 0}^n \binom{n}{i} (\frac{\lambda}{1 - \lambda})^i \cdot (1 - \lambda)^n \\\
+&\ge \sum_{i = 0}^{\lfloor \lambda \cdot n \rfloor} \binom{n}{i} (\frac{\lambda}{1 - \lambda})^i \cdot (1 - \lambda)^n \\\
+&\ge \sum_{i = 0}^{\lfloor \lambda \cdot n \rfloor} \binom{n}{i} (\frac{\lambda}{1 - \lambda})^{\lambda \cdot n} \cdot (1 - \lambda)^n
+\end{aligned}
+$$
+
+equally $\sum_{i = 0}^{\lfloor \lambda \cdot n \rfloor} \binom{n}{i} \le (\frac{\lambda}{1 - \lambda})^{-\lambda \cdot n} \cdot (1 - \lambda)^{-n} = \lambda^{-\lambda \cdot n} \cdot (1 - \lambda)^{- (1 - \lambda) \cdot n}$. Since $\lambda^{-\lambda \cdot n} = 2^{-n \cdot \lambda \log_2{\lambda}}$, then we have:
+
+$$
+\sum_{i = 0}^{\lfloor \lambda \cdot n \rfloor} \binom{n}{i} \le 2^{n \cdot (-\lambda \log_2{\lambda} - (1 - \lambda) \log_2{(1 - \lambda)}))} = 2^{n \cdot h(\lambda)}
+$$
+
+
+
+## Theorem 1.12
