@@ -107,11 +107,11 @@ $$
 q_{\Delta(j)j} = P(X = s_{\Delta(j)} | Y = t_j)
 $$
 
-$P_{COR}$  is the expected probability of decoding a receiving word $v = t_j$ correctly, i.e. $s_{\Delta(j)} = u$, where $u$ is the actual sending word corresponded with receiving word $v$. Applying **Maximum Likelihood Decoding** we can easily get to know which $\Delta(j)$ points to? $p_{\Delta(j)j} \ge p_{ij}$.
+$P_{COR}$  is the expected probability of decoding a receiving word $v = t_j$ correctly, i.e. $s_{\Delta(j)} = u$, where $u$ is the actual sending word corresponded with receiving word $v$. Applying **Maximum Likelihood Decoding** we can easily get to know which $\Delta(j)$ points to? $p_{\Delta(j)j} \ge p_{ij}$ for all possible $i$.
 
 
 
-For example, sending word $u \in S = \{0, 1\}^1$, receiving word $v \in T = \{0, 1, *\}^1$, have the following map:
+### Simple Example of MLD
 
 ![Correct Decoding](./correct_decode.png)
 
@@ -119,11 +119,46 @@ According to **Maximum Likelihood Decoding**, if we decode $v = 0$ to $\Delta(v 
 
 
 
-The expected probability of correct **Maximum Likelihood Decoding** for any receiving word $v$ can be calculated if we know the distribution of $Y$ (for example $p(Y = 0, 1, *) = 3/8, 1/4, 3/8$), or $X$ :
+The **exact** expected probability of correct **Maximum Likelihood Decoding** for any receiving word $v$ can be calculated **if and only if** we know the distribution of $Y$ (for example $p(Y = 0, 1, *) = 3/8, 1/4, 3/8$), or $X$ :
 
 $$
-P_{COR} = \sum_{j} q_j \cdot q_{\Delta(j)j} = 3/8 * 1 + 1/4 * 1 + 3/8 * 2/3 = 7/8
+P_{COR} = \sum_{j} q_j \cdot q_{\Delta(j)j} = 3/8 * 1 + 1/4 * 1 + 3/8 * 2/3 = 7/8 
 $$
+
+### 
+
+### Complex Example of MLD
+
+Let's take a more complex example which has 3 symbols in one word specially for **Binary Symmetric Channel**, assuming the probability of a symbol not change is $\phi = \frac{2}{3} > \frac{1}{2}$, means that noise is a small event in **BSC**:
+
+|           | 000  | 001               | 010               | 011               | 100               | 101  | 110  | 111  |
+| --------- | ---- | ----------------- | ----------------- | ----------------- | ----------------- | ---- | ---- | ---- |
+| **101**   | 2/27 | 4/27              | <mark>1/27</mark> | 2/27              | 4/27              | 8/27 | 2/27 | 4/27 |
+| **`011`** |      |                   | 4/27              |                   | <mark>1/27</mark> |      |      |      |
+| **`100`** |      |                   | 2/27              | <mark>1/27</mark> |                   |      |      |      |
+| **`110`** |      | <mark>1/27</mark> | 4/27              |                   |                   |      |      |      |
+
+According to **Maximum Likelihood Decoding** , we must have $\Delta(010) \ne 101$, since:
+
+- recieving word $v = 010$ is the farmost against sending word $u = 101$, in other words the conditional probability of $P(Y = v | X = u)$ is the smallest, and $P(Y = v \ | X \ne u) > P(Y = v | X = u)$.
+
+- given the recieving word $v = 010$, the condiational probability of $P(X = \Delta(v) \ne u | Y = v) = 1$, every decoding word $\Delta(v) \ne u$ is probabily the closest one to $v$.
+
+Observing that if sending word is fixed $u = 101$, given any recieving word $v$. If we want the decoding result to be false after applying **Maximum Likelihood Decoding**, i.e. $\Delta(v) \ne u$. Then for each sending word $w \ne u$, we must have:
+
+$$
+d(w, v) \le n \cdot (1 - \phi)
+$$
+
+for example $w = 011$, we must have $v \ne 100$, i,e. $d(w, v) \le 2$. In conclusion, the probability of error decoding is:
+
+$$
+P_{ERR} = 1 - P_{COR} = \sum_{w \in C /u} P(d(w, v) \le n \cdot (1 - \phi))
+$$
+
+
+
+But the problem is that in practice we do not have the distribution of recieving word $Y$ or sending word $X$, i.e. $P(X)$ and $P(Y)$. In this case, we cannot get the exact value of $P_{COR}$, we can only deduce a upper bound or lower bound for $P_{COR}$.  This is what we will present in section **Shannon Theory**.
 
  
 
@@ -207,3 +242,47 @@ $$
 $$
 
 ## Theorem 1.12
+
+Let $\delta$ be an arbitrarily small positive real number and let $R$ be a positive real number such that $R < \Lambda$. For all sufficiently large $n$, there is a code of length $n$ and rate $R$, such that when we use maximum likelihood decoding the probability $P_{COR}$ of a correct decoding is larger than $1 - \delta$.
+
+
+
+#### Proof (specially for BSC)
+
+As we may already know, in **BSC** we have:
+
+$$
+P_{COR} = 1 - P_{ERR} = 1 - \sum_{w \in C / u} P(d(w, v) \le n \cdot (1 - \phi))
+$$
+
+where:
+
+$$
+P(d(w, v) \le n \cdot (1 - \phi)) \le \frac{1}{2^n} \cdot \sum_{j = 0}^{\lfloor (1 - \phi)n \rfloor} \binom{n}{j}
+$$
+
+and then:
+
+$$
+\begin{aligned}
+\sum_{w \in C / u} P(d(w, v) \le n \cdot (1 - \phi)) &= (2^{nR} - 1) \cdot \frac{1}{2^n} \cdot \sum_{j = 0}^{\lfloor (1 - \phi)n \rfloor} \binom{n}{j} \\
+&< 2^{nR} \cdot \frac{1}{2^n} \cdot \sum_{j = 0}^{\lfloor (1 - \phi)n \rfloor} \binom{n}{j} \\
+\end{aligned}
+$$
+
+since according to **Lemma 1.11**, we have:
+
+$$
+\begin{aligned}
+1 - P_{COR} &< 2^{n \cdot (R - 1)} \cdot 2^{n \cdot h(1 - \phi)} \\ 
+&= 2^{n \cdot (R - 1 + h(1 - \phi))} \\
+&= 2^{n \cdot (R - (1 + (1 - \phi) \log (1 - \phi) + \phi \cdot \log \phi)} \\
+&= 2^{n \cdot (R - \Lambda)}
+\end{aligned}
+$$
+
+So if $R < \Lambda$ and $n$ is large is enough, then the error probability of Maximum Likelihood Decoding is approximately negligible.
+
+
+
+Note that, there is an implicit  precondition in Shannon Theory, the probability of symbol not change is greater than 1/2, i.e. $\phi > \frac{1}{2}$. Or the noise of a channel is a small event.
