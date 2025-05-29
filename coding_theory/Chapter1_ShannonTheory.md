@@ -20,8 +20,6 @@ $$
 f(P(X = x_0)) = - P(X = x_0) \cdot \log P(X = x_0) = - \frac{1}{4} \cdot \log \frac{1}{4} = \frac{1}{2}
 $$
 
-## 
-
 ## Entropy
 
 Entropy means **expected** information, or **expected** uncertainity of an event $X$ with specified **probability distribution**. 
@@ -35,10 +33,8 @@ For example given a probability distribution of an event $X$, say:
 Then the entropy (expected information) of event $X$ with some probability distribution $P(X = x_i)$ is:
 
 $$
-H(X) = -(2 \cdot \frac{1}{4} \cdot \log \frac{1}{4} + \frac{1}{2} \cdot \log \frac{1}{2}) = \frac{3}{2}
+H(X) = -(2 \cdot \frac{1}{4} \cdot \log \frac{1}{4} + \frac{1}{2} \cdot \log \frac{1}{2}) = \frac{3}{2} 
 $$
-
-## 
 
 ## Conditional Entropy
 
@@ -109,8 +105,6 @@ $$
 
 $P_{COR}$  is the expected probability of decoding a receiving word $v = t_j$ correctly, i.e. $s_{\Delta(j)} = u$, where $u$ is the actual sending word corresponded with receiving word $v$. Applying **Maximum Likelihood Decoding** we can easily get to know which $\Delta(j)$ points to? $p_{\Delta(j)j} \ge p_{ij}$ for all possible $i$.
 
-
-
 ### Simple Example of MLD
 
 ![Correct Decoding](./correct_decode.png)
@@ -122,10 +116,8 @@ According to **Maximum Likelihood Decoding**, if we decode $v = 0$ to $\Delta(v 
 The **exact** expected probability of correct **Maximum Likelihood Decoding** for any receiving word $v$ can be calculated **if and only if** we know the distribution of $Y$ (for example $p(Y = 0, 1, *) = 3/8, 1/4, 3/8$), or $X$ :
 
 $$
-P_{COR} = \sum_{j} q_j \cdot q_{\Delta(j)j} = 3/8 * 1 + 1/4 * 1 + 3/8 * 2/3 = 7/8 
+P_{COR} = \sum_{j} q_j \cdot q_{\Delta(j)j} = 3/8 * 1 + 1/4 * 1 + 3/8 * 2/3 = 7/8  
 $$
-
-### 
 
 ### Complex Example of MLD
 
