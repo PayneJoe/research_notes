@@ -101,3 +101,8 @@ In this case, there are three options:
 - Anyone want to disprove with `DisproveScript_i`.
 
 - One of covenant committee presigned *Payout* transaction for each operator.
+
+
+
+So the final transaction graph of BitVM2 bridge comes:
+![new-fig-6](./fig-6-new.png)
