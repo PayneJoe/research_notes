@@ -111,8 +111,6 @@ $P_{COR}$  is the expected probability of decoding a receiving word $v = t_j$ co
 
 According to **Maximum Likelihood Decoding**, if we decode $v = 0$ to $\Delta(v = 0) = 0$, then we say this decoding is correct. Similarly if we decode $v = 1$ to $\Delta(v = 1) = 1$, and decode $v = *$ to $\Delta(v = *) = 1$, then we say these decodings are correct.
 
-
-
 The **exact** expected probability of correct **Maximum Likelihood Decoding** for any receiving word $v$ can be calculated **if and only if** we know the distribution of $Y$ (for example $p(Y = 0, 1, *) = 3/8, 1/4, 3/8$), or $X$ :
 
 $$
@@ -148,11 +146,7 @@ $$
 P_{ERR} = 1 - P_{COR} = \sum_{w \in C /u} P(d(w, v) \le n \cdot (1 - \phi))
 $$
 
-
-
 But the problem is that in practice we do not have the distribution of recieving word $Y$ or sending word $X$, i.e. $P(X)$ and $P(Y)$. In this case, we cannot get the exact value of $P_{COR}$, we can only deduce a upper bound or lower bound for $P_{COR}$.  This is what we will present in section **Shannon Theory**.
-
- 
 
 ## Transmision Rate
 
@@ -237,8 +231,6 @@ $$
 
 Let $\delta$ be an arbitrarily small positive real number and let $R$ be a positive real number such that $R < \Lambda$. For all sufficiently large $n$, there is a code of length $n$ and rate $R$, such that when we use maximum likelihood decoding the probability $P_{COR}$ of a correct decoding is larger than $1 - \delta$.
 
-
-
 #### Proof (specially for BSC)
 
 As we may already know, in **BSC** we have:
@@ -274,7 +266,5 @@ $$
 $$
 
 So if $R < \Lambda$ and $n$ is large is enough, then the error probability of Maximum Likelihood Decoding is approximately negligible.
-
-
 
 Note that, there is an implicit  precondition in Shannon Theory, the probability of symbol not change is greater than 1/2, i.e. $\phi > \frac{1}{2}$. Or the noise of a channel is a small event.

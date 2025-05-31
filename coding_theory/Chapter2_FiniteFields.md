@@ -27,9 +27,3 @@
   - Structure identity $A \cong B$ (A is congruent with B), they are algebraically identical, only differs in labeling.
   
   For example, $f: (\R, +)  \rightarrow (\R, *)$ defined by $f(x) = e^x$ is a isomorphism, operation is preserved $e^{x + y} = e^x * e^y$, and it satisfy bijective. 
-
-
-
-
-
- 
