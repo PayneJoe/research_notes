@@ -31,7 +31,7 @@ How to protect the first UTXO in **Claim** with assumption of **1-out-of-n**?
   
   - The covenant committee signing message must include the `AssertScript` script, and `CheckCovenant` script itself.
 
-Note that there is a mistake in above diagram. *Assert* transaction must be presigned by covenant committee, otherwise *Assert* can only be issued by any transaction which includes `AssertScript`.
+Note that there is a mistake in above diagram. *Assert* transaction must be presigned by covenant committee, otherwise the `Claim` UTXO can be taken by any transaction which includes `AssertScript`.
 
 In this case, there are two options:
 
@@ -46,13 +46,13 @@ How to protect the second UTXO (dust amount) in Claim with assumption of **1-out
 
 - Spender unlock this UTXO through `CheckCovenant` script which specified the `pk` of covenant committee and `Operator` script which specified the `pk` of operator. 
   
-  - The covenant committee signing message must include the `Operator` script and `CheckCovenant` script itself.
-
-Note that there is mistake in above diagram. *Challenge* transaction must be prsigned by covenant committee, otherwise *Challenge* can only be issued by operator hisself, this is not rantional for operator.
+Note that: 
+- Both covenant committee and operator have the same signing message (preimage) which includes the `Operator` script and `CheckCovenant` script itself.
+- There is a mistake in above diagram. *Challenge* transaction must be prsigned by covenant committee, otherwise challenger can not contruct a transaction with operator's signature to spend this UTXO. 
+- In practice, the signature `HashType`s of covenant committee and operator are the same, different `HashType`s for one input will not be accepted by miner.
 
 In this case, there are three options:
-
-- ~~Any transaction signed and issued by operator hisself.~~ An rational operator has no reason to do this, since operator won't get the paied money `c` from challenger in unhappy case and happy case is blocked.
+- ~~Any transaction signed and issued by operator hisself.~~ An rational operator has no reason to do this, since operator won't get the paid money `c` from challenger in unhappy case and happy case is also blocked.
 - One of covenant committee presigned *PayoutOptimistic* transaction for each operator.
 - One of covenant committee presigned *Challenge* transaction for each operator.
 
@@ -68,7 +68,7 @@ Note that there is a mistake in above diagram. The second input of *Payout* tran
 
 In this case, there are three options:
 
-- ~~Any transaction including `Operator` and `Reltimelock` script issued by operator.~~  An rational operator has no reason to do this, since operator can not take the UTXO from *PegIn* transaction in this case.
+- ~~Any transaction including `Operator` and `Reltimelock` script issued by operator.~~  An rational operator has no reason to do this, since if he did then he can not take the UTXO from *PegIn* transaction.
 
 - Anyone want to disprove with `DisproveScript_i`.
 
