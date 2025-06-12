@@ -27,3 +27,19 @@
   - Structure identity $A \cong B$ (A is congruent with B), they are algebraically identical, only differs in labeling.
   
   For example, $f: (\R, +)  \rightarrow (\R, *)$ defined by $f(x) = e^x$ is a isomorphism, operation is preserved $e^{x + y} = e^x * e^y$, and it satisfy bijective. 
+
+
+
+# Background
+
+- **Group**  is defined upon only multiplication.
+
+- **Ring** is defined upon both addition and multiplication.
+  
+  - division can be possible or not
+
+- **Field** is a special **Ring** , satisfying multplicative inverse.
+  
+  - substraction is a special addition in general, $a - b = a + neg(b)$.
+  
+  - division is also a special multiplication in general, and multplicative inverse make division true for field, $\frac{a}{b} = a \cdot inv(b)$.
