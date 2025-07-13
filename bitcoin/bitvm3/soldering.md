@@ -46,7 +46,7 @@ $$
 Let's take a look at how does the first bit of commitment $[a]$ look like:
 
 $$
-[a]_0 = a_0 \oplus t_0 = a_0 \oplus \cup_{\oplus}(A_{0, i} \land r_{a_i})
+[a] _0 = a_0 \oplus t_0 = a_0 \oplus \cup_{\oplus}(A_{0, i} \land r_{a_i})
 $$
 
 observing that each bit is encoded with some randomness which retains a linearity property owned by XOR operator.
