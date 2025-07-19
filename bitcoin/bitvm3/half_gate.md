@@ -232,6 +232,8 @@ At runtime, evaluator receive two input labels, $W_A^a, W_B^b$. Assuming their *
 
 # OR GATE
 
+# NOR GATE
+
 # Appendix 
 
 The relation of *selector bit*, *permutation bit* and bit value:
