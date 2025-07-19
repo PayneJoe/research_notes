@@ -236,6 +236,8 @@ At runtime, evaluator receive two input labels, $W_A^a, W_B^b$. Assuming their *
 
 # Appendix 
 
+## Select & Permutate Bit
+
 The relation of *selector bit*, *permutation bit* and bit value:
 $$
 \def\arraystretch{1.5}
