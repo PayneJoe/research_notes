@@ -1,4 +1,4 @@
-## Half-gate
+# AND Gate
 
 Regarding AND gate, we can split AND gate into two parts:
 
@@ -182,7 +182,7 @@ Garbler reveals two input labels $W_A^a, W_B^b$ to evaluator:
     $$
     if $a = 0$, then output $W_{C_E}^0 = H(W_B^{p_B}) = H(W_B^1)$, otherwise output $W_{C_E}^1 = W_{C_E}^0 \oplus R = H(W_B^1) \oplus R$.
 
-## AND Half-gate Protocol
+## Half-gate Protocol
 
 #### Garbling
 
@@ -228,8 +228,11 @@ At runtime, evaluator receive two input labels, $W_A^a, W_B^b$. Assuming their *
 
 > Note that the output bit should be $c = 0 \oplus 0 = 0$, this satisfies $c = a \land b = 0 \land 0 = 0$.
 
+# NAND GATE
 
-## Appendix 
+# OR GATE
+
+# Appendix 
 
 The relation of *selector bit*, *permutation bit* and bit value:
 $$
