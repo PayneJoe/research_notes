@@ -219,8 +219,9 @@ At runtime, evaluator receive two input labels, $W_A^a, W_B^b$. Assuming their *
    $$
 2. decrypt the evaluator half-gate:
    $$
-    Decrypt(T_E[s_B - 1], H(W_B^b)) = Decrypt(e_E, H(W_B^0)) = W_{C_E}^0 = H(W_B^1)
+    Decrypt(T_E[s_B - 1], H(W_B^b)) = Decrypt(e_E, H(W_B^0)) = W_{C_E}^0 \oplus W_A^0
    $$
+   then XOR the other wire label, output label should be $(W_{C_E}^0 \oplus W_A^0) \oplus W_A^a = W_{C_E}^0$.
 3. XOR two output labels:
    $$
     W_C^c = W_{C_G^0} \oplus W_{C_E^0}
@@ -228,11 +229,98 @@ At runtime, evaluator receive two input labels, $W_A^a, W_B^b$. Assuming their *
 
 > Note that the output bit should be $c = 0 \oplus 0 = 0$, this satisfies $c = a \land b = 0 \land 0 = 0$.
 
-# NAND GATE
+# General Half-gate
 
-# OR GATE
+Any gate with odd-ones in garbling table, we have a general gate relation:
+$$
+(a, b) \mapsto (a \oplus \alpha_a) \land (b \oplus \alpha_b) \oplus \alpha_c
+$$
 
-# NOR GATE
+Different $\alpha$ values have different gates:
+$$
+\def\arraystretch{1.5}
+   \begin{array}{c:c:c:c}
+   \alpha_a & \alpha_b & \alpha_c & G \\ \hline
+    0 & 0 & 0 & AND \\ \hdashline
+    1 & 1 & 1 & OR \\ \hdashline
+    1 & 1 & 0 & NOR \\ \hdashline
+    0 & 0 & 1 & NAND \\ \hdashline
+   \end{array}
+$$
+
+## NAND
+
+The garbler half-gate is:
+$$
+c_G = \~a \lor \~{p_B}
+$$
+while the evaluator half-gate is:
+$$
+c_E = a \land (b \oplus p_B)
+$$
+
+We also assumes that the *select bit*s of two input wire labels are:
+$$
+s_A^0 = 0, s_A^1 = 1 \\
+s_B^0 = 1, s_B^1 = 0 \\
+$$
+the *permutate bit*s are $p_A = 0, p_B = 1$.
+
+#### Garbling
+
+1. Regarding garbler half-gate:
+
+    Before **GRR**, the two ciphertexts are:
+    $$
+    \begin{aligned}
+    e_0 = H(W_A^0) &\oplus R \oplus W_{C_G}^0 \\
+    e_1 = H(W_A^1) &\oplus W_{C_G}^0 \\
+    \end{aligned}
+    $$
+    after permutated by $p_A = 0$, the garbling table is $T_G = [e_0, e_1]$.
+
+    After **GRR**, only one ciphertext in garbling table:
+    $$
+        T_G = [e_G]
+    $$
+    where $e_G = e_1 = H(W_A^1) \oplus W_{C_G}^0$, and $W_{C_G}^0 = H(W_A^0) \oplus R$.
+
+2. Regarding evaluator half-gate:
+    
+    Before **GRR**, the two ciphertexts are:
+    $$
+    \begin{aligned}
+        e_0 &= H(W_B^{p_B}) \oplus W_{C_E}^0 \\
+        e_1 &= H(W_B^{p_B \oplus 1}) \oplus W_{C_E}^0 \oplus W_A^0 \\
+    \end{aligned}
+    $$
+    the garbling table is $T_E = [e_0, e_1]$.
+
+    After **GRR**, only one ciphertext in garbling table:
+    $$
+        T_E = [e_E]
+    $$
+    where $e_E = e_1 = H(W_B^{p_B \oplus 1}) \oplus W_{C_E}^0 \oplus W_A^0$, and $W_{C_E}^0 = H(W_B^{p_B}) = H(W_B^1)$.
+
+
+#### Evaluating
+
+At runtime, evaluator receive two input labels, $W_A^a, W_B^b$. Assuming their *select bit*s are $s_A^a = 0, s_B^b = 1$.    
+
+1. decrypt garbler half-gate table:
+    $$
+        Decrypt(T_G[s_A^a - 1], H(W_A^a)) = W_{C_G}^1 = W_{C_G}^0 \oplus R = H(W_A^0)
+    $$
+2. decrypt evaluator half-gate table:
+    $$
+        Decrypt(T_E[s_B^b - 1], H(W_B^b)) = W_{C_E}^0 \oplus W_A^0
+    $$
+    then XOR the other input wire label, the output label should be $(W_{C_E}^0 \oplus W_A^0) \oplus W_A^a = W_{C_E}^0$.
+3. XOR two half-gate output labels:
+    $$
+        W_C^c = W_{C_G}^1 \oplus W_{C_E}^0
+    $$
+> We can double check half-gated NAND gate result: $c = !(a \land b) = !(0 \land 0) = 1$, it worked!
 
 # Appendix 
 
