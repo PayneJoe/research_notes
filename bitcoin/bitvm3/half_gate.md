@@ -229,6 +229,8 @@ At runtime, evaluator receive two input labels, $W_A^a, W_B^b$. Assuming their *
 
 > Note that the output bit should be $c = 0 \oplus 0 = 0$, this satisfies $c = a \land b = 0 \land 0 = 0$.
 
+<br />
+
 # General Half-gate
 
 Any gate with odd-ones in garbling table, we have a general gate relation:
@@ -321,6 +323,14 @@ At runtime, evaluator receive two input labels, $W_A^a, W_B^b$. Assuming their *
         W_C^c = W_{C_G}^1 \oplus W_{C_E}^0
     $$
 > We can double check half-gated NAND gate result: $c = !(a \land b) = !(0 \land 0) = 1$, it worked!
+
+<br />
+
+# References
+
+[1] [Two Halves Make a Whole Reducing Data Transfer in Garbled Circuits using Half Gates](https://eprint.iacr.org/2014/756.pdf)
+
+<br />
 
 # Appendix 
 
