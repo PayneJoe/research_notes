@@ -186,8 +186,10 @@ $$
 we also utilize bilinear-map:
 
 $$
-e(c_{z_A}, [\alpha_A]_2) \cdot e(c_{z_B}, [\alpha_B]_2) \cdot e(c_{z_C}, [\alpha_C]_2) \overset{?}= e(c_z, [1]_2) \\
+e(c_{z_A}, [\alpha_A]_2) \cdot e(c_{z_B}, [\alpha_B]_2) \cdot e(c_{z_C}, [\alpha_C]_2) \overset{?}= e(c_z, [1]_2)
 $$
+
+<br />
 
 this checks ensures:
 1. $\mathbf{z_A}, \mathbf{z_B}, \mathbf{z_C}$ are derived from matrix $\mathbf{A}, \mathbf{B}, \mathbf{C}$ respectively.
