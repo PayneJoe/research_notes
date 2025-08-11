@@ -18,6 +18,7 @@ $$
 whose degree is $n - 1$.
 
 Then the lagrange polynomial is actually an inner product:
+
 $$
 p(X) = \langle L^{K}(X), \mathbf{y} \rangle
 $$
