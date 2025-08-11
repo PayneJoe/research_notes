@@ -229,10 +229,6 @@ $$
 
 <br />
 
-## PoC Implementaion of Pari
-
-<br />
-
 # DV-KZG Based Pari
 
 <br />
@@ -241,5 +237,3 @@ $$
 
 [1] [GARUDA and PARI: Faster and Smaller SNARKs
 via Equifficient Polynomial Commitments](https://eprint.iacr.org/2024/1245.pdf)
-
-[2] [PoC implementation of Garuda and Pari](https://github.com/alireza-shirzad/garuda-pari/tree/main)
