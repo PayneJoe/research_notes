@@ -186,7 +186,7 @@ $$
 we also utilize bilinear-map:
 
 $$
-e(c_{z_A}, [\alpha_A]_2) \cdot e(c_{z_B}, [\alpha_B]_2) \cdot e(c_{z_C}, [\alpha_C]_2) \overset{?}= e(c_z, [1]_2)
+e(c_{z_A}, [\alpha_A]_2) \cdot e(c_{z_B}, [\alpha_B]_2) \cdot e(c_{z_C}, [\alpha_C]_2) \overset{?}= e(c_z, [1]_2) \\
 $$
 
 this checks ensures:
