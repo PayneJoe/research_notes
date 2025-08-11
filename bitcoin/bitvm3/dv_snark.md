@@ -10,6 +10,7 @@
 Assuming there is a domain $K = (k_0, k_1, k_2, ..., k_{n - 1})$, and a vector $\mathbf{y} = (y_0, y_1, y_2, ..., y_{n - 1})$. We can simulate a curve containing these $n$ points with **Lagrange Interpolation**.
 
 First of all, according the determined domain $\mathbf{k}$, we can draw $n$ partial lagrange polynomials:
+
 $$
 L_i^K(X) = \prod_{j \ne i}^n \frac{X - k_j}{k_i - k_j}, i \in [n]
 $$
