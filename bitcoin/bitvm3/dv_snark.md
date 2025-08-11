@@ -12,8 +12,9 @@ Assuming there is a domain $K = (k_0, k_1, k_2, ..., k_{n - 1})$, and a vector $
 First of all, according the determined domain $\mathbf{k}$, we can draw $n$ partial lagrange polynomials:
 
 $$
-L_i^K(X) = \prod_{j \ne i}^n \frac{X - k_j}{k_i - k_j}, i \in [n]
+L_i^K(X) = \prod_{j \ne i}^n \frac{X - k_j}{k_i - k_j}, i \in [n] \\
 $$
+
 whose degree is $n - 1$.
 
 Then the lagrange polynomial is actually an inner product:
