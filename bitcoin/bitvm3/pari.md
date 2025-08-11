@@ -112,16 +112,30 @@ In other words, we can merge **Step 1** and **Step 2** into a single step, but y
 
 <br />
 
-**Commitment**
+**Linear Check**
 
-Since we have $n$ partial **Lagrange Polynomial**s, we can directly evaluate them on $\tau$:
+Firstly, we have $n$ partial **Lagrange Polynomial**s, we can directly evaluate them on $\tau$:
 $$
 L^K(\tau) = (L^K_0(\tau), L^K_1(\tau), ..., L^K_{n - 1}(\tau))
 $$
-Then after an inner product we can get the (Pederson) commitment of vector $\bold{z_A}$:
+
+<br />
+
+Secondly, after an inner product we can get the (Pederson) commitment of vector $\bold{z_A}$:
 $$
-c_{z_A} = \langle \bold{z_A}, L^K(\tau)\rangle
+c_{z_A} = [\langle L^K(\tau), \bold{z_A} \rangle]_1
 $$
+
+<br />
+
+Thirdly, since $\bold{z_A} = \bold{A} \bold{z}$, we have:
+$$
+\begin{aligned}
+c_{z_A} &= [\langle L^K(\tau), \bold{A} \bold{z} \rangle]_1 \\
+&= [\langle L^K(\tau)^T \cdot \bold{A}, \bold{z} \rangle]_1 \\
+\end{aligned}
+$$
+
 
 <br />
 
