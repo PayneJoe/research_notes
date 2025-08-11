@@ -47,6 +47,8 @@ $$
 
 # DV-KZG
 
+<br />
+
 # Pari
 
 In R1CS, there are two checks, **Lin-check** and **Row-check**.
@@ -136,13 +138,13 @@ $$
 
 <br />
 
-In general, verifier executes this *zero-check*:
+In general, verifier executes a check:
 $$
 q(X) \overset{?}= \frac{p(X) - p(r)}{X - r}
 $$
 with bilinear-map:
 $$
-e(c_{q}, [\tau]_2) \overset{?}= e(c_{p} - [p(r)]_1, [1]_2) \cdot e(r \cdot c_q, [1]_2)
+e(c_{q}, [\tau]_2) \overset{?}= e(c_{p} + r \cdot c_q - [p(r)]_1, [1]_2) 
 $$
 this check ensures:
 1. prover knows the interpolated vector values $\bold{p}$
@@ -158,15 +160,49 @@ we also utilize bilinear-map:
 $$
 e(c_{z_A}, [\alpha_A]_2) \cdot e(c_{z_B}, [\alpha_B]_2) \cdot e(c_{z_C}, [\alpha_C]_2) \overset{?}= e(c_z, [1]_2)
 $$
+this checks ensures:
+1. $\bold{z_A}, \bold{z_B}, \bold{z_C}$ are derived from matrix $\bold{A}, \bold{B}, \bold{C}$ respectively.
+2. they share the same witness vector $\bold{z}$.
 
 <br />
 
 ## Row-Check
 
-In **Lin-Check**, with **PIOP**, prover ensures $\bold{c_z}$ is the commitment with  
-
+In **Lin-Check**, with **PIOP**, prover ensures $\bold{z_A}, \bold{z_B}, \bold{z_C}$ share the same witness vector $\bold{z}$. In R1CS, we need to prove the quadratic relation:
 $$
 \bold{z_A} \cdot \bold{z_B} \overset{?}= \bold{z_C}
 $$
 
+With the domain $K$ needed to interpolate above vectors, we can have a **vanishing polynomial**:
+$$
+v_K(X) = \prod_{i = 0}^{n} (X - k_i), k_i \in K
+$$
+
+Then the quotient polynomial:
+$$
+h(X) = \frac{p_{z_A}(X) \cdot p_{z_B}(X) - p_{z_C}(X)}{v_K(X)}
+$$
+exists if and only if above quadratic equation holds.
+
+<br />
+
+So, **on prover side**, prover only needs to commit that quotient polynomial $c_{h}$ with $\Sigma_1$. **On verifier side**, checks with bilinear-map:
+$$
+e(c_{z_A}, c_{z_B}) \overset{?}= e(c_{z_C}, [1]_2) \cdot e(c_h, [v_K(\tau)]_2)
+$$
+
+<br />
+
+## PoC Implementaion of Pari
+
+<br />
+
+# DV-KZG Based Pari
+
+<br />
+
 # References
+
+[1] [GARUDA and PARI: Faster and Smaller SNARKs
+via Equifficient Polynomial Commitments](https://eprint.iacr.org/2024/1245.pdf)
+[2] [PoC implementation of Garuda and Pari](https://github.com/alireza-shirzad/garuda-pari/tree/main)
