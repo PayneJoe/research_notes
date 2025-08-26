@@ -3,5 +3,5 @@
 version = 4
 
 [[package]]
-name = "special_curves"
+name = "special-curves"
 version = "0.1.0"

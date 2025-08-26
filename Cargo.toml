@@ -1,2 +1,19 @@
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+repository = "https://github.com/PayneJoe/research_notes.git"
+license = "MIT"
+
 [workspace]
-members = ["crates/special_curves"]
+resolver = "3"
+members = ["crates/special-curves"]
+
+[workspace.dependencies]
+
+
+[profile.dev]
+opt-level = 3
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
