@@ -18,7 +18,7 @@ impl Mod for i64 {
 }
 
 impl Eta {
-    // refer Handbook of Elliptic and Hyperelliptic Curve Cryptography, Algorithm 15.6
+    // refer to "Handbook of Elliptic and Hyperelliptic Curve Cryptography", Algorithm 15.6
     pub fn to_tau_naf(&self) -> Vec<i8> {
         let mut s = vec![];
         let (mut n0, mut n1) = (self.n0, self.n1);
@@ -43,9 +43,12 @@ mod tests {
     use super::*;
     #[test]
     fn test_to_tau_naf() {
-        let eta = Eta { n0: 1, n1: 6 };
+        // refer to "Handbook of Elliptic and Hyperelliptic Curve Cryptography", Example 15.8
+        let eta = Eta { n0: 409, n1: 0 };
         let tau_naf = eta.to_tau_naf();
-        // assert_eq!(tau_naf, vec![1, 0, 1, 0, 1]);
-        println!("{:?}", tau_naf);
+        assert_eq!(
+            tau_naf,
+            vec![1, 0, 0, 1, 0, 0, 1, 0, -1, 0, 1, 0, 0, 0, 0, -1, 0, 0, -1]
+        );
     }
 }
