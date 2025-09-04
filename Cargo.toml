@@ -9,6 +9,7 @@ resolver = "3"
 members = ["crates/special-curves"]
 
 [workspace.dependencies]
+num-rational = "0.4"
 
 
 [profile.dev]
