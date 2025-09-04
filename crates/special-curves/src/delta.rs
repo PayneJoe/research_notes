@@ -23,6 +23,6 @@ mod test {
         let r1 = Rational64::new(1, 2);
         assert_eq!(r1.better_round(), Rational64::new(0, 1), "Round(1/2) == 0");
         let r2 = Rational64::new(-1, 2);
-        assert_eq!(r2.better_round(), Rational64::new(0, 1));
+        assert_eq!(r2.better_round(), Rational64::new(0, 1), "Round(-1/2) == 0");
     }
 }
