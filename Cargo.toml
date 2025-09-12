@@ -10,6 +10,7 @@ members = ["crates/special-curves"]
 
 [workspace.dependencies]
 num-rational = "0.4"
+derive_builder = "0.20"
 
 
 [profile.dev]
