@@ -17,12 +17,12 @@ impl Round for Rational64 {
 }
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
-pub struct Lambda {
+pub struct Tau {
     lambda0: Rational64,
     lambda1: Rational64,
 }
 
-impl Sub for Lambda {
+impl Sub for Tau {
     type Output = Self;
 
     fn sub(self, other: Self) -> Self::Output {
@@ -33,7 +33,7 @@ impl Sub for Lambda {
     }
 }
 
-impl Lambda {
+impl Tau {
     fn new(lambda0: Rational64, lambda1: Rational64) -> Self {
         Self { lambda0, lambda1 }
     }
@@ -51,7 +51,7 @@ impl Lambda {
     }
 }
 
-impl Round for Lambda {
+impl Round for Tau {
     // algorithm 15.9 of "handbook of elliptic and hyperelliptic curve cryptography"
     // http://pustaka.unp.ac.id/file/abstrak_kki/EBOOKS/Kriptografi%20dan%20Ethical%20Hacking%20B.pdf
     fn round_off(&self) -> Self {
@@ -112,15 +112,15 @@ mod test {
     #[test]
     fn test_lambda_round_off() {
         let (lambda0, lambda1) = (Rational64::new(8, 5), Rational64::new(12, 5));
-        let lambda = Lambda::new(lambda0, lambda1);
+        let lambda = Tau::new(lambda0, lambda1);
         let lambda_ro = lambda.round_off();
         assert_eq!(
             lambda_ro,
-            Lambda::new(Rational64::from_integer(1), Rational64::from_integer(2))
+            Tau::new(Rational64::from_integer(1), Rational64::from_integer(2))
         );
         let diff = (lambda - lambda_ro).norm();
         let diff_base =
-            (lambda - Lambda::new(Rational64::from_integer(2), Rational64::from_integer(2))).norm();
+            (lambda - Tau::new(Rational64::from_integer(2), Rational64::from_integer(2))).norm();
         assert!(diff < diff_base, "Closest lattice element");
     }
 }

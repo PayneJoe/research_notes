@@ -1,2 +1,2 @@
-pub mod delta;
+pub mod tau;
 pub mod tau_adic;
