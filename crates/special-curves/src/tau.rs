@@ -1,4 +1,4 @@
-use core::ops::Sub;
+use core::ops::{Div, Mul, Sub};
 use num_rational::Rational64;
 
 pub trait Round {
@@ -30,6 +30,29 @@ impl Sub for Tau {
             lambda0: self.lambda0 - other.lambda0,
             lambda1: self.lambda1 - other.lambda1,
         }
+    }
+}
+
+impl Mul for Tau {
+    type Output = Self;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        let mu = -Rational64::ONE;
+        let new_lambda0 =
+            self.lambda0 * rhs.lambda0 + Rational64::from_integer(2) * self.lambda1 * rhs.lambda1;
+        let new_lambda1 = mu * (self.lambda0 * rhs.lambda1 + self.lambda1 * rhs.lambda0);
+        Self {
+            lambda0: new_lambda0,
+            lambda1: new_lambda1,
+        }
+    }
+}
+
+impl Div<Self> for Tau {
+    type Output = (Self, Self);
+
+    fn div(self, rhs: Self) -> Self::Output {
+        todo!()
     }
 }
 

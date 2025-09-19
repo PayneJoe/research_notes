@@ -1,0 +1,78 @@
+use crate::traits::*;
+use num_rational::Rational64;
+use std::marker::PhantomData;
+
+pub struct RationalQuadraticField {
+    pub real: Rational64,
+    pub imag: Rational64,
+}
+
+impl Round for RationalQuadraticField {
+    type Output = IntegerTau;
+
+    fn round_off(&self) -> Self::Output {
+        // curve function: y^2 + xy = x^3 + a2 x^2 + 1, with as = 0
+        let mu = -1i64;
+        let (f0, f1) = (self.real.round_off(), self.imag.round_off());
+        let (eta0, eta1) = (self.real - f0, self.imag - f1);
+        let (mut h0, mut h1) = (0i64, 0i64);
+        let (one, two, three, four) = (
+            Rational64::ONE,
+            Rational64::from_integer(2),
+            Rational64::from_integer(3),
+            Rational64::from_integer(4),
+        );
+        let eta = two * eta0 + eta1 * mu;
+        if eta >= one {
+            if eta0 - three * mu * eta1 < -one {
+                h1 = mu;
+            } else {
+                h0 = 1;
+            }
+        } else {
+            if eta0 + four * mu * eta1 >= two {
+                h1 = mu;
+            }
+        }
+        if eta < -one {
+            if eta0 - three * mu * eta1 >= one {
+                h1 = -mu;
+            } else {
+                h0 = -1;
+            }
+        } else {
+            if eta0 + four * mu * eta1 < -two {
+                h1 = -mu;
+            }
+        }
+        let (q0, q1) = (f0 + h0, f1 + h1);
+        IntegerTau {
+            a0: q0,
+            a1: q1,
+            _marker: PhantomData,
+        }
+    }
+}
+
+pub struct IntegerQuadraticField<T> {
+    pub a0: i64,
+    pub a1: i64,
+    _marker: PhantomData<T>,
+}
+
+// impl<T: IntegerQuadraticTraits> IntegerQuadraticField<T> {
+//     pub fn norm(&self) -> i64 {
+//         // N(lambda) = lambda0^2 + lambda0 * lambda1 * (\tau + \bar{\tau}) + lambda1^2 * \tau * \bar{\tau}
+//         //           = lambda0^2 + lambda0 * lambda1 * \mu + 2 * lambda1^2
+//         let (lambda0_square, lambda0_mul_lambda1, lambda1_square) =
+//             (self.a0 * self.a0, self.a0 * self.a1, self.a1 * self.a1);
+//         let mu = -1i64;
+//         lambda0_square + lambda0_mul_lambda1 * mu + 2 * lambda1_square
+//     }
+// }
+
+pub struct IntegerQuadratic;
+pub struct IntegerQuadraticConjugate;
+
+type IntegerTau = IntegerQuadraticField<IntegerQuadratic>;
+type IntegerTauConjugate = IntegerQuadraticField<IntegerQuadraticConjugate>;
