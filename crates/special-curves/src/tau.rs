@@ -34,11 +34,11 @@ impl Sub for Tau {
 }
 
 impl Tau {
-    fn new(lambda0: Rational64, lambda1: Rational64) -> Self {
+    pub fn new(lambda0: Rational64, lambda1: Rational64) -> Self {
         Self { lambda0, lambda1 }
     }
 
-    fn norm(&self) -> Rational64 {
+    pub fn norm(&self) -> Rational64 {
         // N(lambda) = lambda0^2 + lambda0 * lambda1 * (\tau + \bar{\tau}) + lambda1^2 * \tau * \bar{\tau}
         //           = lambda0^2 + lambda0 * lambda1 * \mu + 2 * lambda1^2
         let (lambda0_square, lambda0_mul_lambda1, lambda1_square) = (
@@ -46,8 +46,8 @@ impl Tau {
             self.lambda0 * self.lambda1,
             self.lambda1 * self.lambda1,
         );
-        let MU: Rational64 = -Rational64::ONE;
-        lambda0_square + lambda0_mul_lambda1 * MU + Rational64::from_integer(2) * lambda1_square
+        let mu: Rational64 = -Rational64::ONE;
+        lambda0_square + lambda0_mul_lambda1 * mu + Rational64::from_integer(2) * lambda1_square
     }
 }
 
@@ -56,38 +56,38 @@ impl Round for Tau {
     // http://pustaka.unp.ac.id/file/abstrak_kki/EBOOKS/Kriptografi%20dan%20Ethical%20Hacking%20B.pdf
     fn round_off(&self) -> Self {
         // curve function: y^2 + xy = x^3 + a2 x^2 + 1, with as = 0
-        let MU: Rational64 = -Rational64::ONE;
+        let mu: Rational64 = -Rational64::ONE;
         let (f0, f1) = (self.lambda0.round_off(), self.lambda1.round_off());
         println!("f0 = {:?}, f1 = {:?}", f0, f1);
         let (eta0, eta1) = (self.lambda0 - f0, self.lambda1 - f1);
         let (mut h0, mut h1) = (Rational64::from_integer(0), Rational64::from_integer(0));
-        let (ONE, TWO, THREE, FOUR) = (
+        let (one, two, three, four) = (
             Rational64::ONE,
             Rational64::from_integer(2),
             Rational64::from_integer(3),
             Rational64::from_integer(4),
         );
-        let eta = TWO * eta0 + MU * eta1;
-        if eta >= ONE {
-            if eta0 - THREE * MU * eta1 < -ONE {
-                h1 = MU;
+        let eta = two * eta0 + mu * eta1;
+        if eta >= one {
+            if eta0 - three * mu * eta1 < -one {
+                h1 = mu;
             } else {
-                h0 = ONE;
+                h0 = one;
             }
         } else {
-            if eta0 + FOUR * MU * eta1 >= TWO {
-                h1 = MU;
+            if eta0 + four * mu * eta1 >= two {
+                h1 = mu;
             }
         }
-        if eta < -ONE {
-            if eta0 - THREE * MU * eta1 >= ONE {
-                h1 = -MU;
+        if eta < -one {
+            if eta0 - three * mu * eta1 >= one {
+                h1 = -mu;
             } else {
-                h0 = -ONE;
+                h0 = -one;
             }
         } else {
-            if eta0 + FOUR * MU * eta1 < -TWO {
-                h1 = -MU;
+            if eta0 + four * mu * eta1 < -two {
+                h1 = -mu;
             }
         }
         let (q0, q1) = (f0 + h0, f1 + h1);
