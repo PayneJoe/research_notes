@@ -35,7 +35,7 @@ pub struct Tau(IntegerQuadraticField);
 
 impl Default for Tau {
     fn default() -> Self {
-        Self(IntegerQuadraticField::new(0, 1))
+        Self(TauLucasSequence::new().as_integer())
     }
 }
 
@@ -56,5 +56,18 @@ impl Tau {
         }
 
         Self(result.as_integer())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn test_tau_pow() {
+        let tau = Tau::default();
+        assert_eq!(
+            *tau.pow(2).value(),
+            IntegerQuadraticField::new(-BIAS * 1, MU)
+        )
     }
 }
