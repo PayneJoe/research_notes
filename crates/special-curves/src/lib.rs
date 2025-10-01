@@ -23,13 +23,3 @@ pub trait Round {
     type Output;
     fn round_off(&self) -> Self::Output;
 }
-
-pub trait Pow {
-    type Output;
-    fn pow(&self, e: i64) -> Self;
-}
-
-pub trait LucasSequence {
-    type Output;
-    fn next(&self) -> Self;
-}

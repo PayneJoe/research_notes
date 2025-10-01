@@ -1,6 +1,4 @@
 use crate::AsInteger;
-// use crate::LucasSequence;
-use crate::Pow;
 use crate::integer_quadratic::{BIAS, IntegerBaseField, IntegerQuadraticField, MU};
 
 #[derive(Copy, Clone, Debug)]
@@ -23,53 +21,40 @@ impl<const U0: IntegerBaseField, const U1: IntegerBaseField> LucasSequence<U0, U
     }
 }
 
+impl<const U0: IntegerBaseField, const U1: IntegerBaseField> AsInteger for LucasSequence<U0, U1> {
+    type Output = IntegerQuadraticField;
+    fn as_integer(&self) -> Self::Output {
+        IntegerQuadraticField::new(-BIAS * self.u0, self.u1)
+    }
+}
+
 type TauLucasSequence = LucasSequence<0, 1>;
 
 #[derive(Copy, Clone, Debug)]
 pub struct Tau(IntegerQuadraticField);
 
+impl Default for Tau {
+    fn default() -> Self {
+        Self(IntegerQuadraticField::new(0, 1))
+    }
+}
+
 impl Tau {
+    pub fn value(&self) -> &IntegerQuadraticField {
+        &self.0
+    }
     pub fn pow(&self, e: usize) -> Self {
         if e == 0 {
             return Self(IntegerQuadraticField::one());
         }
+        if e == 1 {
+            return *self;
+        }
         let mut result = TauLucasSequence::new();
-        todo!()
+        for _ in 1..e {
+            result = result.next();
+        }
+
+        Self(result.as_integer())
     }
 }
-
-// #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-// pub struct Tau {
-//     u0: IntegerBaseField,
-//     u1: IntegerBaseField,
-// }
-//
-// impl LucasSequence for Tau {
-//     type Output = Self;
-//     // refer to "Handbook of Elliptic and Hyperelliptic Curve Cryptography", equation 15.4
-//     fn next(&self) -> Self::Output {
-//         Self {
-//             u0: self.u1,
-//             u1: MU * self.u1 - BIAS * self.u0,
-//         }
-//     }
-// }
-//
-// impl AsInteger for Tau {
-//     type Output = IntegerQuadraticField;
-//     fn as_integer(&self) -> Self::Output {
-//         IntegerQuadraticField::new(-BIAS * self.u0, self.u1)
-//     }
-// }
-//
-// impl Pow for Tau {
-//     type Output = Self;
-//     fn pow(&self, e: i64) -> Self::Output {
-//         assert!(e >= 1, "e must be greater or equal than 1");
-//         let mut result = Self { u0: 0, u1: 1 };
-//         for _ in 1..e {
-//             result = result.next();
-//         }
-//         result
-//     }
-// }
