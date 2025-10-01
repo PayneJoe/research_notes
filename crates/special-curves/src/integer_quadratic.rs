@@ -3,28 +3,28 @@ use crate::{AsRational, Norm, Round};
 use core::ops::{Add, Div, Mul, Sub};
 use num_rational::Rational64;
 
-type BaseField = i64;
+pub type IntegerBaseField = i64;
 /// Curve function: y^2 + xy = x^3 + a_2 * x^2 + 1, with a_2 = 0, \mu = (-1)^{1 - a_2}
 /// 1) \mu = -1, when a_2 = 0
 /// 2) \mu = 1, when a_2 = 1
 ///
 /// Characteristic polynomial of the Frobenius Endomorphism: T^2 - \mu * \tau + 2 \equiv 0
 /// 1) \tau + \bar{\tau} = \mu
-/// 2) \tau * \bar{\tau} = 2
-pub const MU: BaseField = -1;
-pub const BIAS: BaseField = 2;
+/// 2) \tau * \bar{\tau} = bias = 2
+pub const MU: IntegerBaseField = -1;
+pub const BIAS: IntegerBaseField = 2;
 
-impl AsRational for BaseField {
+impl AsRational for IntegerBaseField {
     type Output = Rational64;
     fn as_rational(&self) -> Self::Output {
         Rational64::new(*self, 1)
     }
 }
 
-#[derive(Clone, Copy, Eq, PartialEq, Debug)]
+#[derive(Clone, Copy, Eq, PartialEq, Debug, Default)]
 pub struct IntegerQuadraticField {
-    pub a0: BaseField,
-    pub a1: BaseField,
+    pub a0: IntegerBaseField,
+    pub a1: IntegerBaseField,
 }
 
 impl AsRational for IntegerQuadraticField {
@@ -36,7 +36,7 @@ impl AsRational for IntegerQuadraticField {
 }
 
 impl Norm for IntegerQuadraticField {
-    type Output = BaseField;
+    type Output = IntegerBaseField;
 
     fn norm(&self) -> Self::Output {
         let a0 = self.a0 * self.a0 + BIAS * self.a1 * self.a1;
@@ -46,8 +46,12 @@ impl Norm for IntegerQuadraticField {
 }
 
 impl IntegerQuadraticField {
-    pub fn new(a0: BaseField, a1: BaseField) -> Self {
+    pub fn new(a0: IntegerBaseField, a1: IntegerBaseField) -> Self {
         Self { a0, a1 }
+    }
+
+    pub fn one() -> Self {
+        Self::new(1, 0)
     }
 
     pub fn conjugate(self) -> Self {
@@ -61,6 +65,13 @@ impl IntegerQuadraticField {
         let a0 = self.a0 * other.a0 + BIAS * self.a1 * other.a1 + MU * self.a0 * other.a1;
         let a1 = self.a1 * other.a0 - self.a0 * other.a1;
         Self { a0, a1 }
+    }
+
+    pub fn add_conj(self, other: Self) -> Self {
+        Self {
+            a0: self.a0 + other.a0 + MU * other.a1,
+            a1: self.a1 - other.a1,
+        }
     }
 }
 

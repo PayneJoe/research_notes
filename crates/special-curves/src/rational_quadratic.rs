@@ -3,7 +3,7 @@ use crate::{AsRational, Norm, Round};
 use core::ops::Sub;
 use num_rational::Rational64;
 
-type BaseField = Rational64;
+type RationalBaseField = Rational64;
 
 impl Round for Rational64 {
     type Output = i64;
@@ -40,7 +40,7 @@ impl Sub for RationalQuadraticField {
 }
 
 impl Norm for RationalQuadraticField {
-    type Output = BaseField;
+    type Output = RationalBaseField;
     fn norm(&self) -> Self::Output {
         let (real_square, real_mul_imag, imag_square) = (
             self.real * self.real,

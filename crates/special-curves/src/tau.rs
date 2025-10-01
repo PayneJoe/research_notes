@@ -1,149 +1,75 @@
-use core::ops::{Div, Mul, Sub};
-use num_rational::Rational64;
+use crate::AsInteger;
+// use crate::LucasSequence;
+use crate::Pow;
+use crate::integer_quadratic::{BIAS, IntegerBaseField, IntegerQuadraticField, MU};
 
-pub trait Round {
-    fn round_off(&self) -> Self;
+#[derive(Copy, Clone, Debug)]
+struct LucasSequence<const U0: IntegerBaseField = 0, const U1: IntegerBaseField = 1> {
+    u0: IntegerBaseField,
+    u1: IntegerBaseField,
 }
 
-impl Round for Rational64 {
-    fn round_off(&self) -> Self {
-        let half = Rational64::new(1, 2);
-        if self.numer().signum() * self.denom().signum() > 0 {
-            (self.clone() - half).ceil()
-        } else {
-            (self.clone() + half).floor()
-        }
+impl<const U0: IntegerBaseField, const U1: IntegerBaseField> LucasSequence<U0, U1> {
+    const fn new() -> Self {
+        Self { u0: U0, u1: U1 }
     }
-}
 
-#[derive(Debug, Eq, PartialEq, Copy, Clone)]
-pub struct Tau {
-    lambda0: Rational64,
-    lambda1: Rational64,
-}
-
-impl Sub for Tau {
-    type Output = Self;
-
-    fn sub(self, other: Self) -> Self::Output {
+    // refer to "Handbook of Elliptic and Hyperelliptic Curve Cryptography", equation 15.4
+    pub fn next(&self) -> Self {
         Self {
-            lambda0: self.lambda0 - other.lambda0,
-            lambda1: self.lambda1 - other.lambda1,
+            u0: self.u1,
+            u1: MU * self.u1 - BIAS * self.u0,
         }
     }
 }
 
-impl Mul for Tau {
-    type Output = Self;
+type TauLucasSequence = LucasSequence<0, 1>;
 
-    fn mul(self, rhs: Self) -> Self::Output {
-        let mu = -Rational64::ONE;
-        let new_lambda0 =
-            self.lambda0 * rhs.lambda0 + Rational64::from_integer(2) * self.lambda1 * rhs.lambda1;
-        let new_lambda1 = mu * (self.lambda0 * rhs.lambda1 + self.lambda1 * rhs.lambda0);
-        Self {
-            lambda0: new_lambda0,
-            lambda1: new_lambda1,
+#[derive(Copy, Clone, Debug)]
+pub struct Tau(IntegerQuadraticField);
+
+impl Tau {
+    pub fn pow(&self, e: usize) -> Self {
+        if e == 0 {
+            return Self(IntegerQuadraticField::one());
         }
-    }
-}
-
-impl Div<Self> for Tau {
-    type Output = (Self, Self);
-
-    fn div(self, rhs: Self) -> Self::Output {
+        let mut result = TauLucasSequence::new();
         todo!()
     }
 }
 
-impl Tau {
-    pub fn new(lambda0: Rational64, lambda1: Rational64) -> Self {
-        Self { lambda0, lambda1 }
-    }
-
-    pub fn norm(&self) -> Rational64 {
-        // N(lambda) = lambda0^2 + lambda0 * lambda1 * (\tau + \bar{\tau}) + lambda1^2 * \tau * \bar{\tau}
-        //           = lambda0^2 + lambda0 * lambda1 * \mu + 2 * lambda1^2
-        let (lambda0_square, lambda0_mul_lambda1, lambda1_square) = (
-            self.lambda0 * self.lambda0,
-            self.lambda0 * self.lambda1,
-            self.lambda1 * self.lambda1,
-        );
-        let mu: Rational64 = -Rational64::ONE;
-        lambda0_square + lambda0_mul_lambda1 * mu + Rational64::from_integer(2) * lambda1_square
-    }
-}
-
-impl Round for Tau {
-    // algorithm 15.9 of "handbook of elliptic and hyperelliptic curve cryptography"
-    // http://pustaka.unp.ac.id/file/abstrak_kki/EBOOKS/Kriptografi%20dan%20Ethical%20Hacking%20B.pdf
-    fn round_off(&self) -> Self {
-        // curve function: y^2 + xy = x^3 + a2 x^2 + 1, with as = 0
-        let mu: Rational64 = -Rational64::ONE;
-        let (f0, f1) = (self.lambda0.round_off(), self.lambda1.round_off());
-        println!("f0 = {:?}, f1 = {:?}", f0, f1);
-        let (eta0, eta1) = (self.lambda0 - f0, self.lambda1 - f1);
-        let (mut h0, mut h1) = (Rational64::from_integer(0), Rational64::from_integer(0));
-        let (one, two, three, four) = (
-            Rational64::ONE,
-            Rational64::from_integer(2),
-            Rational64::from_integer(3),
-            Rational64::from_integer(4),
-        );
-        let eta = two * eta0 + mu * eta1;
-        if eta >= one {
-            if eta0 - three * mu * eta1 < -one {
-                h1 = mu;
-            } else {
-                h0 = one;
-            }
-        } else {
-            if eta0 + four * mu * eta1 >= two {
-                h1 = mu;
-            }
-        }
-        if eta < -one {
-            if eta0 - three * mu * eta1 >= one {
-                h1 = -mu;
-            } else {
-                h0 = -one;
-            }
-        } else {
-            if eta0 + four * mu * eta1 < -two {
-                h1 = -mu;
-            }
-        }
-        let (q0, q1) = (f0 + h0, f1 + h1);
-        Self {
-            lambda0: q0,
-            lambda1: q1,
-        }
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-    #[test]
-    fn test_rational_round_off() {
-        let r1 = Rational64::new(1, 2);
-        assert_eq!(r1.round_off(), Rational64::new(0, 1), "Round(1/2) == 0");
-        let r2 = Rational64::new(-1, 2);
-        assert_eq!(r2.round_off(), Rational64::new(0, 1), "Round(-1/2) == 0");
-    }
-
-    #[test]
-    fn test_lambda_round_off() {
-        let (lambda0, lambda1) = (Rational64::new(8, 5), Rational64::new(12, 5));
-        let lambda = Tau::new(lambda0, lambda1);
-        let lambda_ro = lambda.round_off();
-        assert_eq!(
-            lambda_ro,
-            Tau::new(Rational64::from_integer(1), Rational64::from_integer(2))
-        );
-        let diff = (lambda - lambda_ro).norm();
-        let diff_base =
-            (lambda - Tau::new(Rational64::from_integer(2), Rational64::from_integer(2))).norm();
-        assert!(diff < diff_base, "Closest lattice element");
-    }
-}
+// #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+// pub struct Tau {
+//     u0: IntegerBaseField,
+//     u1: IntegerBaseField,
+// }
+//
+// impl LucasSequence for Tau {
+//     type Output = Self;
+//     // refer to "Handbook of Elliptic and Hyperelliptic Curve Cryptography", equation 15.4
+//     fn next(&self) -> Self::Output {
+//         Self {
+//             u0: self.u1,
+//             u1: MU * self.u1 - BIAS * self.u0,
+//         }
+//     }
+// }
+//
+// impl AsInteger for Tau {
+//     type Output = IntegerQuadraticField;
+//     fn as_integer(&self) -> Self::Output {
+//         IntegerQuadraticField::new(-BIAS * self.u0, self.u1)
+//     }
+// }
+//
+// impl Pow for Tau {
+//     type Output = Self;
+//     fn pow(&self, e: i64) -> Self::Output {
+//         assert!(e >= 1, "e must be greater or equal than 1");
+//         let mut result = Self { u0: 0, u1: 1 };
+//         for _ in 1..e {
+//             result = result.next();
+//         }
+//         result
+//     }
+// }
