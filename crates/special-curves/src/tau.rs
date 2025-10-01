@@ -40,18 +40,27 @@ impl Default for Tau {
 }
 
 impl Tau {
+    pub fn trace(&self) -> IntegerBaseField {
+        MU
+    }
+
+    pub fn determint(&self) -> IntegerBaseField {
+        BIAS
+    }
+
     pub fn value(&self) -> &IntegerQuadraticField {
         &self.0
     }
-    pub fn pow(&self, e: usize) -> Self {
-        if e == 0 {
+    // \tau^d = U_d * \tau - U_{d - 1} * BIAS
+    pub fn pow(&self, d: usize) -> Self {
+        if d == 0 {
             return Self(IntegerQuadraticField::one());
         }
-        if e == 1 {
+        if d == 1 {
             return *self;
         }
         let mut result = TauLucasSequence::new();
-        for _ in 1..e {
+        for _ in 1..d {
             result = result.next();
         }
 

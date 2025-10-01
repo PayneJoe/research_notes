@@ -54,7 +54,7 @@ impl IntegerQuadraticField {
         Self::new(1, 0)
     }
 
-    pub fn conjugate(self) -> Self {
+    pub fn conjugate(&self) -> Self {
         Self {
             a0: self.a0 + MU * self.a1,
             a1: -self.a1,
