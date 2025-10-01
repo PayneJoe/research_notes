@@ -1,4 +1,4 @@
-use crate::tau_new::{IntegerQuadraticField, MU};
+use crate::integer_quadratic::{IntegerQuadraticField, MU};
 use num_rational::Rational64;
 
 /// Trait for rounding off a rational number to the nearest integer

@@ -1,4 +1,4 @@
-use crate::rational::{RationalQuadraticField, Round};
+use crate::rational_quadratic::{RationalQuadraticField, Round};
 use core::ops::{Add, Div, Mul, Sub};
 use num_rational::Rational64;
 
