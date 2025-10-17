@@ -27,6 +27,7 @@ impl ScalarField {
 
 #[cfg(test)]
 mod tests {
+    // refer to "Handbook of Elliptic and Hyperelliptic Curve Cryptography", Example 15.15
     #[test]
     fn test_scalar_field_reduce() {
         use crate::integer_quadratic::IntegerQuadraticField;
