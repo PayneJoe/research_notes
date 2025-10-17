@@ -30,8 +30,8 @@ impl<const U0: IntegerBaseField, const U1: IntegerBaseField> AsInteger for Lucas
 
 type TauLucasSequence = LucasSequence<0, 1>;
 
-#[derive(Copy, Clone, Debug)]
-pub struct Tau(IntegerQuadraticField);
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub struct Tau(pub IntegerQuadraticField);
 
 impl Default for Tau {
     fn default() -> Self {
@@ -78,5 +78,15 @@ mod tests {
             *tau.pow(2).value(),
             IntegerQuadraticField::new(-BIAS * 1, MU)
         )
+    }
+
+    #[test]
+    fn test_delta() {
+        let tau = Tau::default();
+        let nominator = *tau.pow(11).value() - IntegerQuadraticField::one();
+        let denominator = *tau.value() - IntegerQuadraticField::one();
+        let (quotient, remainder) = nominator / denominator;
+        assert_eq!(quotient, IntegerQuadraticField::new(23, -22));
+        assert_eq!(remainder, IntegerQuadraticField::zero());
     }
 }

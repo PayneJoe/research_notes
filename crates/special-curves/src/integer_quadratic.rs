@@ -11,7 +11,8 @@ pub type IntegerBaseField = i64;
 /// Characteristic polynomial of the Frobenius Endomorphism: T^2 - \mu * \tau + 2 \equiv 0
 /// 1) \tau + \bar{\tau} = \mu
 /// 2) \tau * \bar{\tau} = bias = 2
-pub const MU: IntegerBaseField = -1;
+// pub const MU: IntegerBaseField = -1;
+pub const MU: IntegerBaseField = 1;
 pub const BIAS: IntegerBaseField = 2;
 
 impl AsRational for IntegerBaseField {
@@ -39,9 +40,9 @@ impl Norm for IntegerQuadraticField {
     type Output = IntegerBaseField;
 
     fn norm(&self) -> Self::Output {
-        let a0 = self.a0 * self.a0 + BIAS * self.a1 * self.a1;
-        let a1 = MU * self.a0 * self.a1;
-        a0 + a1
+        let x0 = self.a0 * self.a0 + BIAS * self.a1 * self.a1;
+        let x1 = MU * self.a0 * self.a1;
+        x0 + x1
     }
 }
 
@@ -52,6 +53,10 @@ impl IntegerQuadraticField {
 
     pub fn one() -> Self {
         Self::new(1, 0)
+    }
+
+    pub fn zero() -> Self {
+        Self::new(0, 0)
     }
 
     pub fn conjugate(&self) -> Self {

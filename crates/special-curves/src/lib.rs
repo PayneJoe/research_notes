@@ -1,5 +1,6 @@
 pub mod integer_quadratic;
 pub mod rational_quadratic;
+pub mod scalar_field;
 pub mod tau;
 pub mod tau_adic;
 
