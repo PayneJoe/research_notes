@@ -1,9 +1,21 @@
+use crate::Modulos;
 use crate::rational_quadratic::RationalQuadraticField;
 use crate::{AsRational, Norm, Round};
 use core::ops::{Add, Div, Mul, Sub};
 use num_rational::Rational64;
 
 pub type IntegerBaseField = i64;
+
+impl Modulos for IntegerBaseField {
+    fn modulos(&self, modulus: Self) -> Self {
+        let mut r = *self % modulus;
+        if r < 0 {
+            r = r + modulus;
+        }
+        r
+    }
+}
+
 /// Curve function: y^2 + xy = x^3 + a_2 * x^2 + 1, with a_2 = 0, \mu = (-1)^{1 - a_2}
 /// 1) \mu = -1, when a_2 = 0
 /// 2) \mu = 1, when a_2 = 1

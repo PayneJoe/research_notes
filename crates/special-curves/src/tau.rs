@@ -1,4 +1,5 @@
 use crate::AsInteger;
+use crate::Modulos;
 use crate::integer_quadratic::{BIAS, IntegerBaseField, IntegerQuadraticField, MU};
 
 #[derive(Copy, Clone, Debug)]
@@ -66,6 +67,25 @@ impl Tau {
 
         Self(result.as_integer())
     }
+
+    // convert to \tau-NAF representation
+    // refer to "Handbook of Elliptic and Hyperelliptic Curve Cryptography", Algorithm 15.6
+    pub fn to_naf(&self) -> Vec<i8> {
+        let mut s = vec![];
+        let (mut n0, mut n1) = (self.value().a0, self.value().a1);
+        let mut r: i8;
+        while n0.abs() + n1.abs() != 0 {
+            if n0.modulos(2) == 1 {
+                r = (2 - (n0 - 2 * n1).modulos(4)) as i8;
+                n0 -= r as i64;
+            } else {
+                r = 0;
+            }
+            s.push(r);
+            (n0, n1) = (n1 + n0 / 2, -n0 / 2);
+        }
+        s
+    }
 }
 
 #[cfg(test)]
@@ -88,5 +108,14 @@ mod tests {
         let (quotient, remainder) = nominator / denominator;
         assert_eq!(quotient, IntegerQuadraticField::new(23, -22));
         assert_eq!(remainder, IntegerQuadraticField::zero());
+    }
+
+    // refer to "Handbook of Elliptic and Hyperelliptic Curve Cryptography", Example 15.8
+    #[test]
+    fn test_to_tau_naf() {
+        let scalar = Tau(IntegerQuadraticField::new(409, 0));
+        let tau_naf = scalar.to_naf();
+        let expected_tau_naf = vec![1, 0, 0, 1, 0, 0, 1, 0, -1, 0, 1, 0, 0, 0, 0, -1, 0, 0, -1];
+        assert_eq!(tau_naf, expected_tau_naf);
     }
 }

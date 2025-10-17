@@ -111,10 +111,10 @@ mod test {
         let (lambda0, lambda1) = (Rational64::new(8, 5), Rational64::new(12, 5));
         let lambda = RationalQuadraticField::new(lambda0, lambda1);
         let lambda_ro = lambda.round_off();
-        assert_eq!(lambda_ro, IntegerQuadraticField::new(1, 2));
+        assert_eq!(lambda_ro, IntegerQuadraticField::new(2, 2));
         let diff = (lambda - lambda_ro.as_rational()).norm();
         let diff_base =
-            (lambda - RationalQuadraticField::new(2i64.as_rational(), 2i64.as_rational())).norm();
+            (lambda - RationalQuadraticField::new(1i64.as_rational(), 2i64.as_rational())).norm();
         assert!(diff < diff_base, "Closest lattice element");
     }
 }

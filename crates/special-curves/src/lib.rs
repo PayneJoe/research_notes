@@ -2,7 +2,6 @@ pub mod integer_quadratic;
 pub mod rational_quadratic;
 pub mod scalar_field;
 pub mod tau;
-pub mod tau_adic;
 
 //////////////////// Traits
 pub trait AsRational {
@@ -23,4 +22,9 @@ pub trait Norm {
 pub trait Round {
     type Output;
     fn round_off(&self) -> Self::Output;
+}
+
+// Modulos integers to positive remainder
+pub trait Modulos: Sized {
+    fn modulos(&self, modulus: Self) -> Self;
 }
