@@ -15,7 +15,7 @@ impl Modulos for IntegerBaseField {
         r
     }
 
-    // compute x^-1 mod 2^k
+    // naive implementation of computing x^-1 mod 2^k, where x must be odd
     fn inv_mod_pow_k(&self, k: usize) -> Self {
         let modulus = 1 << k;
         let r = self.modulos(modulus);
