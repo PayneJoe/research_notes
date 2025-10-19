@@ -23,8 +23,8 @@ impl Modulos for IntegerBaseField {
         let mut s = 1;
         let mut result = 0;
         while s < modulus {
-            if (s * modulus + 1) % self == 0 {
-                result = ((s * modulus + 1) / self).modulos(modulus);
+            if (s * modulus + 1) % r == 0 {
+                result = ((s * modulus + 1) / r) % modulus;
             }
             s += 1;
         }

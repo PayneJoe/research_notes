@@ -1,7 +1,9 @@
 use crate::AsInteger;
 use crate::Modulos;
 use crate::integer_quadratic::{BIAS, IntegerBaseField, IntegerQuadraticField, MU};
-use core::ops::{Add, Div, Mul, Sub};
+use core::ops::{Add, Div, Mul, Neg, Sub};
+
+pub type TauNAFw = Vec<Tau>;
 
 #[derive(Copy, Clone, Debug)]
 struct LucasSequence<const U0: IntegerBaseField = 0, const U1: IntegerBaseField = 1> {
@@ -70,7 +72,18 @@ impl Div for Tau {
     }
 }
 
+impl Neg for Tau {
+    type Output = Self;
+    fn neg(self) -> Self::Output {
+        Self(IntegerQuadraticField::new(-self.0.a0, -self.0.a1))
+    }
+}
+
 impl Tau {
+    pub fn new(n0: IntegerBaseField, n1: IntegerBaseField) -> Self {
+        Self(IntegerQuadraticField::new(n0, n1))
+    }
+
     pub fn zero() -> Self {
         Self(IntegerQuadraticField::zero())
     }
@@ -123,6 +136,40 @@ impl Tau {
             (n0, n1) = (n1 + n0 / 2, -n0 / 2);
         }
         s
+    }
+
+    // refer to "Handbook of Elliptic and Hyperelliptic Curve Cryptography", Algorithm 15.17
+    pub fn to_naf_w(&self, w: usize) -> TauNAFw {
+        // precomputed tables
+        let alpha_table = vec![Tau::default(); 1 << (w - 1)];
+        let beta_table = vec![0; 1 << (w - 1)];
+        let gamma_table = vec![0; 1 << (w - 1)];
+        let hw = 0;
+        let base_modulus = 1 << w;
+        let mut result = vec![];
+        let mut eta = self.clone();
+        let mut r = Tau::zero();
+        while eta.value().a0.abs() + eta.value().a1.abs() != 0 {
+            if eta.value().a0.modulos(2) == 1 {
+                // hw is approximate of tau mod 2^w
+                let u = (eta.value().a0 + eta.value().a1 * hw) % base_modulus;
+                let ui = u.abs() as usize;
+                let delta = Tau::new(beta_table[ui], gamma_table[ui]);
+                // after removing alpha_table[ui], eta is divisible by tau
+                (eta, r) = if u > 0 {
+                    (eta - delta, alpha_table[ui])
+                } else {
+                    (eta + delta, -alpha_table[ui])
+                };
+            } else {
+                r = Tau::zero();
+            }
+            result.push(r);
+            let (quo, rem) = eta / Tau::default();
+            assert_eq!(rem, Tau::zero());
+            eta = quo;
+        }
+        result
     }
 }
 
