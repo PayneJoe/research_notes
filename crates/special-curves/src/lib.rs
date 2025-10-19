@@ -27,4 +27,5 @@ pub trait Round {
 // Modulos integers to positive remainder
 pub trait Modulos: Sized {
     fn modulos(&self, modulus: Self) -> Self;
+    fn inv_mod_pow_k(&self, k: usize) -> Self;
 }

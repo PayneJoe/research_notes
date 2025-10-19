@@ -1,6 +1,7 @@
 use crate::AsInteger;
 use crate::Modulos;
 use crate::integer_quadratic::{BIAS, IntegerBaseField, IntegerQuadraticField, MU};
+use core::ops::{Add, Div, Mul, Sub};
 
 #[derive(Copy, Clone, Debug)]
 struct LucasSequence<const U0: IntegerBaseField = 0, const U1: IntegerBaseField = 1> {
@@ -40,7 +41,44 @@ impl Default for Tau {
     }
 }
 
+impl Add for Tau {
+    type Output = Self;
+    fn add(self, other: Self) -> Self::Output {
+        Self(self.0 + other.0)
+    }
+}
+
+impl Sub for Tau {
+    type Output = Self;
+    fn sub(self, other: Self) -> Self::Output {
+        Self(self.0 - other.0)
+    }
+}
+
+impl Mul for Tau {
+    type Output = Self;
+    fn mul(self, other: Self) -> Self::Output {
+        Self(self.0 * other.0)
+    }
+}
+
+impl Div for Tau {
+    type Output = (Self, Self);
+    fn div(self, other: Self) -> Self::Output {
+        let (q, r) = self.0 / other.0;
+        (Self(q), Self(r))
+    }
+}
+
 impl Tau {
+    pub fn zero() -> Self {
+        Self(IntegerQuadraticField::zero())
+    }
+
+    pub fn one() -> Self {
+        Self(IntegerQuadraticField::one())
+    }
+
     pub fn trace(&self) -> IntegerBaseField {
         MU
     }
@@ -117,5 +155,29 @@ mod tests {
         let tau_naf = scalar.to_naf();
         let expected_tau_naf = vec![1, 0, 0, 1, 0, 0, 1, 0, -1, 0, 1, 0, 0, 0, 0, -1, 0, 0, -1];
         assert_eq!(tau_naf, expected_tau_naf);
+    }
+
+    // refer to "Handbook of Elliptic and Hyperelliptic Curve Cryptography" page 363
+    // ring Z[\tau] / \tau^k is isomorphic to Z / 2^k, exists a map: \varphi(\tau) = h_k
+    #[test]
+    fn test_hw() {
+        let k = 4;
+        let base_modulus = 1 << k;
+        // hk = 2 * U_{k - 1} / U_k mod 2^k
+        let mut l = TauLucasSequence::new();
+        for i in 0..k - 1 {
+            l = l.next();
+            println!("U_{:?} = {:?}, U_{:?} = {:?}", i + 1, l.u0, i + 2, l.u1);
+        }
+        let uk_inv = l.u1.inv_mod_pow_k(k);
+        let hk = (2 * l.u0 * uk_inv).modulos(base_modulus);
+
+        // Verify tau^k ≡ 0 mod (tau^2 - hk * tau + 2)
+        let tau = Tau::default();
+        let tau_w = tau.pow(k);
+        assert_eq!(
+            (tau_w.value().a0 + tau_w.value().a1 * hk).modulos(base_modulus),
+            0
+        );
     }
 }

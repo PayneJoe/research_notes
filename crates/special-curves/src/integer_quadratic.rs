@@ -14,6 +14,22 @@ impl Modulos for IntegerBaseField {
         }
         r
     }
+
+    // compute x^-1 mod 2^k
+    fn inv_mod_pow_k(&self, k: usize) -> Self {
+        let modulus = 1 << k;
+        let r = self.modulos(modulus);
+        assert!(r % 2 == 1, "only odd integers have inverses mod 2^k");
+        let mut s = 1;
+        let mut result = 0;
+        while s < modulus {
+            if (s * modulus + 1) % self == 0 {
+                result = ((s * modulus + 1) / self).modulos(modulus);
+            }
+            s += 1;
+        }
+        result
+    }
 }
 
 /// Curve function: y^2 + xy = x^3 + a_2 * x^2 + 1, with a_2 = 0, \mu = (-1)^{1 - a_2}
