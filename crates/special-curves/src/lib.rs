@@ -1,6 +1,6 @@
 pub mod integer_quadratic;
 pub mod rational_quadratic;
-pub mod scalar_field;
+// pub mod scalar_field;
 pub mod tau;
 
 //////////////////// Traits
@@ -22,6 +22,10 @@ pub trait Norm {
 pub trait Round {
     type Output;
     fn round_off(&self) -> Self::Output;
+}
+
+pub trait Canonical {
+    fn is_canonical(&self) -> bool;
 }
 
 // Modulos integers to positive remainder

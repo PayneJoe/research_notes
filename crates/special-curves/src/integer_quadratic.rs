@@ -1,3 +1,4 @@
+use crate::Canonical;
 use crate::Modulos;
 use crate::rational_quadratic::RationalQuadraticField;
 use crate::{AsRational, Norm, Round};
@@ -5,6 +6,12 @@ use core::ops::{Add, Div, Mul, Sub};
 use num_rational::Rational64;
 
 pub type IntegerBaseField = i64;
+
+impl Canonical for IntegerBaseField {
+    fn is_canonical(&self) -> bool {
+        (*self).abs() == 0 || (*self).abs() == 1
+    }
+}
 
 impl Modulos for IntegerBaseField {
     fn modulos(&self, modulus: Self) -> Self {
