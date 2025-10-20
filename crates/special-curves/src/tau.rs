@@ -309,3 +309,54 @@ impl<const W: usize> From<TauQuadratic> for TauExpansion<W> {
         return TauExpansion(arr);
     }
 }
+#[cfg(test)]
+mod tests {
+    use super::*;
+    // \tau^2 = MU * \tau - BIAS
+    #[test]
+    fn test_tau_pow() {
+        assert_eq!(Tau::<2>::pow(), TauQuadratic::new(-BIAS * 1, MU))
+    }
+
+    // \tau^11 - 1 / \tau - 1 = 23 - 22 * \tau
+    #[test]
+    fn test_delta() {
+        let nominator = Tau::<11>::pow() - TauQuadratic::one();
+        let denominator = TauQuadratic::from_tau() - TauQuadratic::one();
+        let (quotient, remainder) = nominator / denominator;
+        assert_eq!(quotient, TauQuadratic::new(23, -22));
+        assert_eq!(remainder, TauQuadratic::zero());
+    }
+
+    // refer to "Handbook of Elliptic and Hyperelliptic Curve Cryptography", Example 15.8
+    #[test]
+    fn test_to_tau_naf() {
+        let scalar = TauQuadratic::from(409);
+        let tau_naf = scalar.to_naf();
+        let expected_tau_naf = vec![1, 0, 0, 1, 0, 0, 1, 0, -1, 0, 1, 0, 0, 0, 0, -1, 0, 0, -1];
+        assert_eq!(tau_naf, expected_tau_naf);
+    }
+
+    // refer to "Handbook of Elliptic and Hyperelliptic Curve Cryptography" page 363
+    // ring Z[\tau] / \tau^k is isomorphic to Z / 2^k, exists a map: \varphi(\tau) = h_k
+    #[test]
+    fn test_hw() {
+        const k: usize = 4;
+        let base_modulus = 1 << k;
+        // hk = 2 * U_{k - 1} / U_k mod 2^k
+        let mut l = TauLucasSequence::new();
+        for i in 0..k - 1 {
+            l = l.next();
+            println!("U_{:?} = {:?}, U_{:?} = {:?}", i + 1, l.u0, i + 2, l.u1);
+        }
+        let uk_inv = l.u1.inv_mod_pow_k(k);
+        let hk = (2 * l.u0 * uk_inv).modulos(base_modulus);
+
+        // Verify tau^k ≡ 0 mod (tau^2 - hk * tau + 2)
+        let tau_w = Tau::<k>::pow();
+        assert_eq!(
+            (tau_w.value().a0 + tau_w.value().a1 * hk).modulos(base_modulus),
+            0
+        );
+    }
+}
