@@ -1,5 +1,5 @@
-use crate::integer_quadratic::{BIAS, IntegerQuadraticField, MU};
-use crate::{AsRational, Norm, Round};
+use crate::tau_expansion::integer_quadratic::{BIAS, IntegerQuadraticField, MU};
+use crate::tau_expansion::{AsRational, Norm, Round};
 use core::ops::Sub;
 use num_rational::Rational64;
 
@@ -97,7 +97,7 @@ impl Round for RationalQuadraticField {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::AsRational;
+    use crate::tau_expansion::AsRational;
     #[test]
     fn test_rational_round_off() {
         let r1 = Rational64::new(1, 2);

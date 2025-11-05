@@ -1,7 +1,7 @@
-use crate::Canonical;
-use crate::Modulos;
-use crate::rational_quadratic::RationalQuadraticField;
-use crate::{AsRational, Norm, Round};
+use crate::tau_expansion::Canonical;
+use crate::tau_expansion::Modulos;
+use crate::tau_expansion::rational_quadratic::RationalQuadraticField;
+use crate::tau_expansion::{AsRational, Norm, Round};
 use core::ops::{Add, Div, Mul, Sub};
 use num_rational::Rational64;
 

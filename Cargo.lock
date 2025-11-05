@@ -87,6 +87,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b9e0384b61958566e926dc50660321d12159025e767c18e043daf26b70104c39"
 
 [[package]]
+name = "koblitz-curves"
+version = "0.1.0"
+dependencies = [
+ "derive_builder",
+ "num-rational",
+]
+
+[[package]]
 name = "num-bigint"
 version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -141,14 +149,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1885c039570dc00dcb4ff087a89e185fd56bae234ddc7f056a945bf36467248d"
 dependencies = [
  "proc-macro2",
-]
-
-[[package]]
-name = "special-curves"
-version = "0.1.0"
-dependencies = [
- "derive_builder",
- "num-rational",
 ]
 
 [[package]]

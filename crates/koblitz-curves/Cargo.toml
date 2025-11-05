@@ -1,5 +1,5 @@
 [package]
-name = "special-curves"
+name = "koblitz-curves"
 version = { workspace = true }
 edition = { workspace = true }
 license = { workspace = true }

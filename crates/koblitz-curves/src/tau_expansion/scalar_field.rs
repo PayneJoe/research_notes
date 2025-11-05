@@ -1,6 +1,6 @@
-use crate::Norm;
-use crate::integer_quadratic::{IntegerBaseField, IntegerQuadraticField};
-use crate::tau::TauQuadratic;
+use crate::tau_expansion::Norm;
+use crate::tau_expansion::integer_quadratic::{IntegerBaseField, IntegerQuadraticField};
+use crate::tau_expansion::tau::TauQuadratic;
 
 #[derive(Clone, Copy, Eq, PartialEq, Debug, Default)]
 pub struct ScalarField(IntegerBaseField);
@@ -30,9 +30,9 @@ mod tests {
     // refer to "Handbook of Elliptic and Hyperelliptic Curve Cryptography", Example 15.15
     #[test]
     fn test_scalar_field_reduce() {
-        use crate::integer_quadratic::IntegerQuadraticField;
-        use crate::scalar_field::ScalarField;
-        use crate::tau::TauQuadratic;
+        use crate::tau_expansion::integer_quadratic::IntegerQuadraticField;
+        use crate::tau_expansion::scalar_field::ScalarField;
+        use crate::tau_expansion::tau::TauQuadratic;
 
         let scalar = ScalarField::new(409);
         let reduced_scalar = scalar.reduce();
