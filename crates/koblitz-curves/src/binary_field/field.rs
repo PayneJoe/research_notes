@@ -1,6 +1,7 @@
 use std::fmt::Debug;
 use std::ops::{Add, Mul, Neg, Shl, Sub};
 
+// u8 word only for testing purpose, actually we use u32 or u64
 pub const WORD_BITS: usize = 8;
 pub type WORD = u8;
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
