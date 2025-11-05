@@ -7,6 +7,7 @@ pub type WORD = u8;
 pub struct BigInt<const N: usize>(pub [WORD; N]);
 
 impl<const N: usize> BigInt<N> {
+    // convert bigint to bit string, for example: [249, 6] -> "10011111,011"
     #[allow(dead_code)]
     pub fn to_bit_string(&self) -> String {
         self.0
@@ -17,7 +18,7 @@ impl<const N: usize> BigInt<N> {
             .to_string()
     }
 
-    // convert bit string to bigint, for example: "10011111,011" -> [249,6]
+    // convert bit string with bit-wise big-ending ordering (bits from left to right) to bigint, for example: "10011111,011" -> [249,6]
     #[allow(dead_code)]
     pub fn from_bit_string(s: &String) -> Self {
         assert!(s.len() < WORD_BITS * N);
@@ -37,9 +38,7 @@ impl<const N: usize> BigInt<N> {
             }
             w_mask <<= 1;
         }
-        if bytes.len() % WORD_BITS != 0 {
-            result.0[bytes.len() / WORD_BITS] = w;
-        }
+        result.0[(bytes.len() - 1) / WORD_BITS] = w;
         result
     }
 
@@ -91,7 +90,7 @@ impl<const N: usize> Add for BigInt<N> {
     }
 }
 
-// algorithm 2.34 in "Guide to Elliptic Curve Cryptography"
+// Algorithm 11.34 in "Handbook of Elliptic and HyperElliptic Curve Cryptography"
 impl<const N: usize> Mul for BigInt<N> {
     type Output = Self;
 
@@ -101,8 +100,8 @@ impl<const N: usize> Mul for BigInt<N> {
         let mut right = rhs;
         for k in 0..WORD_BITS {
             for j in 0..N {
-                if self.0[j] & word_mask == 1 {
-                    c = c + right << j * WORD_BITS;
+                if (self.0[j] & word_mask) == word_mask {
+                    c = c + (right << (j * WORD_BITS));
                 }
             }
             if k != WORD_BITS - 1 {
@@ -155,15 +154,35 @@ mod tests {
     use std::str::FromStr;
 
     #[test]
-    fn test_from_bit_string() {
-        let s = String::from_str("10011111011").unwrap();
-        let n = BigInt::<4>::from_bit_string(&s);
-        let expect = BigInt([249, 6, 0, 0]);
-        assert_eq!(n, expect, "Test for BigInt::from_bit_string failed!");
+    fn test_bit_string() {
+        let v_bit_string = String::from_str("10011111011").unwrap();
+        let v = BigInt::<4>::from_bit_string(&v_bit_string);
+        let v_expected = BigInt([249, 6, 0, 0]);
+        assert_eq!(v, v_expected, "Test for BigInt::from_bit_string failed!");
         assert_eq!(
-            n.to_bit_string(),
-            s,
+            v.to_bit_string(),
+            v_bit_string,
             "Test for BigInt::to_bit_string failed!"
         );
+    }
+
+    // Example 11.36 in "Handbook of Elliptic and HyperElliptic Curve Cryptography"
+    // u(X) = X^5 + X^4 + X^2 + X, v(X) = X^10 + X^9 + X^7 + X^6 + X^5 + X^4 + X^3 + 1
+    // w(X) = u(X) * v(X) = X^15 + X^13 + X^10 + X^9 + X^7 + X^5 + X^2 + X
+    #[test]
+    fn test_bigint_mul() {
+        let (u_bit_string, v_bit_string, w_bit_string) = (
+            String::from_str("011011").unwrap(),
+            String::from_str("10011111011").unwrap(),
+            String::from_str("0110010101100101").unwrap(),
+        );
+        let (u, v, w_expected) = (
+            BigInt::<4>::from_bit_string(&u_bit_string),
+            BigInt::<4>::from_bit_string(&v_bit_string),
+            BigInt::<4>::from_bit_string(&w_bit_string),
+        );
+        let w = u * v;
+        assert_eq!(w, w_expected, "Test for BigInt::mul failed!");
+        assert_eq!(w.to_bit_string(), w_bit_string);
     }
 }
