@@ -6,7 +6,7 @@ license = "MIT"
 
 [workspace]
 resolver = "3"
-members = ["crates/special-curves"]
+members = ["crates/koblitz-curves"]
 
 [workspace.dependencies]
 num-rational = "0.4"
