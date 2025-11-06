@@ -1,4 +1,4 @@
-use crate::binary_field::field::{BigInt, BinaryField, WORD, WORD_BITS};
+use crate::binary_field::field::{BigInt, BinaryField, WORD, WORD_SIZE};
 use core::ops::{Add, Mul, Neg, Shl, Sub};
 
 // Fq = GF(2^m)
