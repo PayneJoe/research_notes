@@ -303,19 +303,28 @@ mod tests {
     // squaring over a bigint
     #[test]
     fn test_bigint_squaring() {
-        let test_data = [(
-            String::from_str("10011111011").unwrap(),
-            [
-                String::from_str("10000010101010100010100000000000").unwrap(),
-                String::from_str("00000000000000000000000000000000").unwrap(),
-            ],
-        )];
+        let test_data = [
+            (
+                String::from_str("10011111011").unwrap(),
+                [
+                    String::from_str("1000001010101010").unwrap(),
+                    String::from_str("0010100000000000").unwrap(),
+                ],
+            ),
+            (
+                String::from_str("1001111100100101").unwrap(),
+                [
+                    String::from_str("1000001010101010").unwrap(),
+                    String::from_str("0000100000100010").unwrap(),
+                ],
+            ),
+        ];
         for (v_bit_string, v_squaring_bit_string) in test_data {
             let (v, v_squaring_expected) = (
-                BigInt::<4>::from_bit_string(&v_bit_string),
+                BigInt::<2>::from_bit_string(&v_bit_string),
                 [
-                    BigInt::<4>::from_bit_string(&v_squaring_bit_string[0]),
-                    BigInt::<4>::from_bit_string(&v_squaring_bit_string[1]),
+                    BigInt::<2>::from_bit_string(&v_squaring_bit_string[0]),
+                    BigInt::<2>::from_bit_string(&v_squaring_bit_string[1]),
                 ],
             );
             let v_squaring = v.squaring();
