@@ -1,2 +1,2 @@
 pub mod field;
-pub mod fq;
+pub mod polynomial;
