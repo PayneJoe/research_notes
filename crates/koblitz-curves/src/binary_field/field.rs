@@ -1,10 +1,39 @@
 use std::fmt::Debug;
 use std::ops::{Add, Mul, Neg, Shl, Sub};
 
-// u8 word only for testing purpose, actually we use u32 or u64
+// u8 word only for testing purpose, actually we will use u32 or u64 as one word
 pub type WORD = u8;
 pub const WORD_SIZE: usize = 8;
+// window size for caching when doing bigint multiplication
 pub const WINDOW_SIZE: usize = 2;
+
+#[allow(dead_code)]
+pub trait PolynomialSquaring: Sized {
+    fn squaring(&self) -> [Self; 2];
+}
+
+impl PolynomialSquaring for u8 {
+    // squaring a byte would blow up two times of its capacity
+    fn squaring(&self) -> [Self; 2] {
+        let mut result = [0 as u8; 2];
+        // byte to bits
+        let byte_bits = (0..8).map(|i| (self >> i) & 1 == 1).collect::<Vec<bool>>();
+        // insert zeros in lower byte
+        for i in 0..4 {
+            if byte_bits[i] {
+                result[0] += 1 << (2 * i);
+            }
+        }
+        // insert zeros in higher word
+        for i in 0..4 {
+            if byte_bits[4 + i] {
+                result[1] += 1 << (2 * i);
+            }
+        }
+        result
+    }
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct BigInt<const N: usize>(pub [WORD; N]);
 
@@ -23,7 +52,7 @@ impl<const N: usize> BigInt<N> {
     // convert bit string with bit-wise big-ending ordering (bits from left to right) to bigint, for example: "10011111,011" -> [249,6]
     #[allow(dead_code)]
     pub fn from_bit_string(s: &String) -> Self {
-        assert!(s.len() < WORD_SIZE * N);
+        assert!(s.len() <= WORD_SIZE * N);
         if s.len() == 0 {
             return Self::zero();
         }
@@ -44,22 +73,6 @@ impl<const N: usize> BigInt<N> {
         result
     }
 
-    pub fn zero() -> Self {
-        Self([0 as WORD; N])
-    }
-
-    #[allow(dead_code)]
-    pub fn one() -> Self {
-        let mut result = Self::zero();
-        result.0[0] = 1 as WORD;
-        result
-    }
-
-    #[allow(dead_code)]
-    pub fn is_zero(&self) -> bool {
-        self.0 == [0 as WORD; N]
-    }
-
     // modulus polynomial is assumed to be monic: X^N + h(x)
     // remove the leading one bit, so that we can obtain the residual polynomial h(x)
     #[allow(dead_code)]
@@ -77,6 +90,54 @@ impl<const N: usize> BigInt<N> {
             shift += WORD_SIZE;
         }
         *self << shift
+    }
+    pub fn zero() -> Self {
+        Self([0 as WORD; N])
+    }
+
+    #[allow(dead_code)]
+    pub fn one() -> Self {
+        let mut result = Self::zero();
+        result.0[0] = 1 as WORD;
+        result
+    }
+
+    #[allow(dead_code)]
+    pub fn is_zero(&self) -> bool {
+        self.0 == [0 as WORD; N]
+    }
+
+    // Algorithm 2.39 in "Gude to Elliptic Curve Cryptography"
+    #[allow(dead_code)]
+    pub fn squaring(&self) -> [Self; 2] {
+        let mut result = Vec::with_capacity(2 * N);
+        // precomputation for byte squaring
+        let capacity = 1 << 8;
+        let mut lookup_table = Vec::with_capacity(capacity);
+        lookup_table.push([0u8; 2]);
+        for v in 1..capacity {
+            lookup_table.push((v as u8).squaring());
+        }
+        // insert zeros by byte
+        for i in 0..N {
+            // multiple bytes in a word
+            let word_bytes = self.0[i].to_be_bytes();
+            for byte in word_bytes {
+                result.extend(lookup_table[byte as usize]);
+            }
+        }
+        [
+            Self(result[..N].try_into().unwrap()),
+            Self(result[N..].try_into().unwrap()),
+        ]
+    }
+}
+
+impl<const N: usize> From<WORD> for BigInt<N> {
+    fn from(w: WORD) -> Self {
+        let mut result = Self::zero();
+        result.0[0] = w;
+        result
     }
 }
 
@@ -97,6 +158,7 @@ impl<const N: usize> Add for BigInt<N> {
 impl<const N: usize> Mul<WORD> for BigInt<N> {
     type Output = Self;
 
+    // TODO: add a small lookup table would be a little bit helpful
     fn mul(self, rhs: WORD) -> Self::Output {
         let mut c = Self::zero();
         let mut word_mask = 1 as WORD;
@@ -167,6 +229,7 @@ impl<const N: usize> Shl<usize> for BigInt<N> {
     }
 }
 
+#[allow(dead_code)]
 pub trait BinaryField<const N: usize>:
     Debug
     + Eq
@@ -224,6 +287,42 @@ mod tests {
             let w = u * v;
             assert_eq!(w, w_expected, "Test for BigInt::mul failed!");
             assert_eq!(w.to_bit_string(), w_bit_string);
+        }
+    }
+
+    // squaring over a byte
+    #[test]
+    fn test_u8_squaring() {
+        let test_data = [(4u8, [16u8, 0u8]), (3u8, [5u8, 0u8]), (149u8, [17u8, 65u8])];
+        for (v, v_squaring_expected) in test_data {
+            let v_squaring = v.squaring();
+            assert_eq!(v_squaring, v_squaring_expected);
+        }
+    }
+
+    // squaring over a bigint
+    #[test]
+    fn test_bigint_squaring() {
+        let test_data = [(
+            String::from_str("10011111011").unwrap(),
+            [
+                String::from_str("10000010101010100010100000000000").unwrap(),
+                String::from_str("00000000000000000000000000000000").unwrap(),
+            ],
+        )];
+        for (v_bit_string, v_squaring_bit_string) in test_data {
+            let (v, v_squaring_expected) = (
+                BigInt::<4>::from_bit_string(&v_bit_string),
+                [
+                    BigInt::<4>::from_bit_string(&v_squaring_bit_string[0]),
+                    BigInt::<4>::from_bit_string(&v_squaring_bit_string[1]),
+                ],
+            );
+            let v_squaring = v.squaring();
+            assert_eq!(
+                v_squaring, v_squaring_expected,
+                "Test for BigInt::squaring failed!"
+            );
         }
     }
 }
