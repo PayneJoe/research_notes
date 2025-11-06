@@ -357,7 +357,7 @@ pub trait BinaryField<const N: usize>:
     + Neg<Output = Self>
 {
     // irreducible binary polynomial: f(X) = X^M + R(X) where M is the degree of binary polynomial, and R(X) is residual polynomial
-    // which M < N * WORD_SIZE, and deg(R) < M
+    // which M <= N * WORD_SIZE, and deg(R) < M
     const M: usize;
     const R: BinaryPolynomial<N>;
     const UK: [BinaryPolynomial<N>; WORD_SIZE];
