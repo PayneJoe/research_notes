@@ -2,8 +2,9 @@ use std::fmt::Debug;
 use std::ops::{Add, Mul, Neg, Shl, Sub};
 
 // u8 word only for testing purpose, actually we use u32 or u64
-pub const WORD_BITS: usize = 8;
 pub type WORD = u8;
+pub const WORD_SIZE: usize = 8;
+pub const WINDOW_SIZE: usize = 2;
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct BigInt<const N: usize>(pub [WORD; N]);
 
@@ -22,7 +23,7 @@ impl<const N: usize> BigInt<N> {
     // convert bit string with bit-wise big-ending ordering (bits from left to right) to bigint, for example: "10011111,011" -> [249,6]
     #[allow(dead_code)]
     pub fn from_bit_string(s: &String) -> Self {
-        assert!(s.len() < WORD_BITS * N);
+        assert!(s.len() < WORD_SIZE * N);
         if s.len() == 0 {
             return Self::zero();
         }
@@ -30,8 +31,8 @@ impl<const N: usize> BigInt<N> {
         let (mut w, mut w_mask) = (0 as WORD, 1 as WORD);
         let bytes = s.as_bytes();
         for i in 0..bytes.len() {
-            if (i > 0) && (i % WORD_BITS == 0) {
-                result.0[i / WORD_BITS - 1] = w;
+            if (i > 0) && (i % WORD_SIZE == 0) {
+                result.0[i / WORD_SIZE - 1] = w;
                 (w, w_mask) = (0 as WORD, 1 as WORD);
             }
             if bytes[i] == b'1' {
@@ -39,7 +40,7 @@ impl<const N: usize> BigInt<N> {
             }
             w_mask <<= 1;
         }
-        result.0[(bytes.len() - 1) / WORD_BITS] = w;
+        result.0[(bytes.len() - 1) / WORD_SIZE] = w;
         result
     }
 
@@ -69,11 +70,11 @@ impl<const N: usize> BigInt<N> {
         let mut shift = 0 as usize;
         for i in (0..N).rev() {
             let zeros = self.0[i].leading_zeros() as usize;
-            if (shift == 0) && (zeros < 8) {
+            if (shift == 0) && (zeros < WORD_SIZE) {
                 shift += zeros;
                 break;
             }
-            shift += 8;
+            shift += WORD_SIZE;
         }
         *self << shift
     }
@@ -100,11 +101,11 @@ impl<const N: usize> Mul<WORD> for BigInt<N> {
         let mut c = Self::zero();
         let mut word_mask = 1 as WORD;
         let mut left = self;
-        for j in 0..WORD_BITS {
+        for j in 0..WORD_SIZE {
             if (rhs & word_mask) == word_mask {
                 c = c + left;
             }
-            if j != WORD_BITS - 1 {
+            if j != WORD_SIZE - 1 {
                 left = left << 1;
             }
             word_mask <<= 1;
@@ -121,9 +122,8 @@ impl<const N: usize> Mul for BigInt<N> {
 
     fn mul(self, rhs: Self) -> Self::Output {
         // cache lookup table
-        let k = 2;
-        assert!(WORD_BITS % k == 0);
-        let capacity = 1 << k;
+        assert!(WORD_SIZE % WINDOW_SIZE == 0);
+        let capacity = 1 << WINDOW_SIZE;
         let mut lookup_table = Vec::with_capacity(capacity);
         lookup_table.push(Self::zero());
         for i in 1..capacity {
@@ -134,13 +134,13 @@ impl<const N: usize> Mul for BigInt<N> {
         }
         // iterate by window
         let mut c = Self::zero();
-        for j in (0..(WORD_BITS / k)).rev() {
+        for j in (0..(WORD_SIZE / WINDOW_SIZE)).rev() {
             for i in 0..N {
-                let chunk_word = (self.0[i] >> (j * k)) & ((capacity - 1) as WORD);
-                c = c + (lookup_table[chunk_word as usize] << (i * WORD_BITS));
+                let chunk_word = (self.0[i] >> (j * WINDOW_SIZE)) & ((capacity - 1) as WORD);
+                c = c + (lookup_table[chunk_word as usize] << (i * WORD_SIZE));
             }
             if j != 0 {
-                c = c << k;
+                c = c << WINDOW_SIZE;
             }
         }
         c
@@ -152,14 +152,14 @@ impl<const N: usize> Shl<usize> for BigInt<N> {
 
     fn shl(self, shift: usize) -> Self::Output {
         let mut result = [0 as WORD; N];
-        let byte_shift = shift / 8;
-        let bit_shift = shift % 8;
+        let word_shift = shift / WORD_SIZE;
+        let bit_shift = shift % WORD_SIZE;
 
         for i in (0..N).rev() {
-            if i >= byte_shift {
-                result[i] = self.0[i - byte_shift] << bit_shift;
-                if bit_shift > 0 && i - byte_shift > 0 {
-                    result[i] |= self.0[i - byte_shift - 1] >> (8 - bit_shift);
+            if i >= word_shift {
+                result[i] = self.0[i - word_shift] << bit_shift;
+                if bit_shift > 0 && i - word_shift > 0 {
+                    result[i] |= self.0[i - word_shift - 1] >> (WORD_SIZE - bit_shift);
                 }
             }
         }
