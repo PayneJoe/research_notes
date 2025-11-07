@@ -43,6 +43,27 @@ pub struct BinaryPolynomial<const N: usize>(pub [WORD; N]);
 
 #[allow(dead_code)]
 impl<const N: usize> BinaryPolynomial<N> {
+    pub fn set_bit(&mut self, word_offset: usize, bit_offset: usize, bit: u8) {
+        assert!((word_offset < N) && (bit_offset < WORD_SIZE));
+        assert!((bit == 0u8) || (bit == 1u8));
+        let word_mask = 1 << bit_offset;
+        if bit == 1u8 {
+            self.0[word_offset] |= word_mask;
+        } else {
+            self.0[word_offset] &= !word_mask;
+        }
+    }
+
+    pub fn get_bit(&self, word_offset: usize, bit_offset: usize) -> u8 {
+        assert!((word_offset < N) && (bit_offset < WORD_SIZE));
+        let word_mask = 1 << bit_offset;
+        if (self.0[word_offset] & word_mask) == word_mask {
+            1u8
+        } else {
+            0u8
+        }
+    }
+
     pub fn at(&self, index: usize) -> Option<&WORD> {
         if index < N {
             Some(&self.0[index])

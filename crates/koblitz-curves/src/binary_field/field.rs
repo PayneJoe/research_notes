@@ -6,7 +6,7 @@ use core::ops::{Add, Mul, Neg, Shl, Sub};
 // binary field Fq = GF(2^m) / f(X), where m = 163
 // N = 21 when word = u8
 pub const M: usize = 163;
-pub const N: usize = 21;
+pub const N: usize = 24;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Fq(BinaryPolynomial<N>);
@@ -93,32 +93,32 @@ impl Sub<Self> for Fq {
 impl BinaryField<N> for Fq {
     const M: usize = M;
     const R: BinaryPolynomial<N> = BinaryPolynomial([
-        201, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        201, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     ]);
     const UK: [BinaryPolynomial<N>; WORD_SIZE] = [
         BinaryPolynomial([
-            201, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            201, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         ]),
         BinaryPolynomial([
-            146, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            146, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         ]),
         BinaryPolynomial([
-            36, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            36, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         ]),
         BinaryPolynomial([
-            72, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            72, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         ]),
         BinaryPolynomial([
-            144, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            144, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         ]),
         BinaryPolynomial([
-            32, 25, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            32, 25, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         ]),
         BinaryPolynomial([
-            64, 50, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            64, 50, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         ]),
         BinaryPolynomial([
-            128, 100, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            128, 100, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         ]),
     ];
 
@@ -130,11 +130,25 @@ impl BinaryField<N> for Fq {
         for i in (0..M - 1).rev() {
             let j = i / WORD_SIZE;
             let k = i - j * WORD_SIZE;
-            let word_mask = 1 << k;
-            if pair[1].at(j).unwrap() & word_mask == word_mask {
+            if pair[1].get_bit(j, k) == 1u8 {
                 c = c.trunc_add(j, Self::UK[k]);
             }
         }
+
+        // deal with one word overflow when adding UK to c
+        for i in M..(N * WORD_SIZE) {
+            let j = i / WORD_SIZE;
+            let k = i - j * WORD_SIZE;
+            if c.get_bit(j, k) == 1u8 {
+                // you should be here, if your constant parameters is choosing approiately
+                if i + 1 - M >= WORD_SIZE {
+                    assert!(false, "Overflow Error: the degree of r(x) is too big!");
+                }
+                c = Self::UK[i - M] + c;
+                c.set_bit(j, k, 0u8);
+            }
+        }
+
         Self(c)
     }
 }
@@ -147,8 +161,8 @@ mod tests {
     #[test]
     fn test_fq_reduce() {
         let test_data = [(
-            String::from_str("0x03ba4d15e1e974d9279e5a5c527a157742b845827b").unwrap(),
-            String::from_str("0x03ba4d15e1e974d9279e5a5c527a157742b845827b").unwrap(),
+            String::from_str("0x00000003ba4d15e1e974d9279e5a5c527a157742b845827b").unwrap(),
+            String::from_str("0x00000003ba4d15e1e974d9279e5a5c527a157742b845827b").unwrap(),
         )];
         for (v_hex_string, v_reduced_hex_string) in test_data {
             let v = Fq::from_hex_string(&v_hex_string);
@@ -158,11 +172,21 @@ mod tests {
 
     #[test]
     fn test_fq_mul() {
-        let test_data = [(
-            String::from_str("0x03ba4d15e1e974d9279e5a5c527a157742b845827b").unwrap(),
-            String::from_str("0x001d4350a888ab13aacc54664d0f1f7ebb315f8039").unwrap(),
-            String::from_str("0x033b74e65b81aeadbe2bfc6968ed3c050d10363e8c").unwrap(),
-        )];
+        for i in 0..Fq::UK.len() - 1 {
+            assert_eq!(Fq::UK[i] << 1, Fq::UK[i + 1]);
+        }
+        let test_data = [
+            (
+                String::from_str("0x00000003ba4d15e1e974d9279e5a5c527a157742b845827b").unwrap(),
+                String::from_str("0x000000001d4350a888ab13aacc54664d0f1f7ebb315f8039").unwrap(),
+                String::from_str("0x000000033b74e65b81aeadbe2bfc6968ed3c050d10363e8c").unwrap(),
+            ),
+            (
+                String::from_str("0x0000000644192702d2623c11c05c3196ee6490c8f4927ce5").unwrap(),
+                String::from_str("0x00000004ef895f49b9b91e352a6c05dd3136d6e5249dae50").unwrap(),
+                String::from_str("0x00000006b15a564aaf5e7df8d4424c03bc35bd7c2c61e17e").unwrap(),
+            ),
+        ];
         for (u_hex_string, v_hex_string, w_expected_hex_string) in test_data {
             let (u, v, w_expected) = (
                 Fq::from_hex_string(&u_hex_string),
