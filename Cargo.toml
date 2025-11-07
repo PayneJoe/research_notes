@@ -11,6 +11,7 @@ members = ["crates/koblitz-curves"]
 [workspace.dependencies]
 num-rational = "0.4"
 derive_builder = "0.20"
+hex = "0.4"
 
 
 [profile.dev]

@@ -1,3 +1,4 @@
+use hex;
 use std::fmt::Debug;
 use std::ops::{Add, Mul, Neg, Shl, Sub};
 
@@ -50,36 +51,71 @@ impl<const N: usize> BinaryPolynomial<N> {
         }
     }
 
-    // convert bigint to bit string, for example: [249, 6] -> "10011111,011" when word = u8
-    pub fn to_bit_string(&self) -> String {
-        self.0
+    // to little ending hex bytes string
+    pub fn to_hex_string(&self) -> String {
+        let bytes = self
+            .0
             .iter()
-            .map(|s| format!("{:08b}", s).chars().rev().collect::<String>())
-            .collect::<String>()
-            .trim_end_matches('0')
-            .to_string()
+            .map(|w| w.to_le_bytes())
+            .rev()
+            .collect::<Vec<_>>()
+            .concat();
+        format!("0x{}", hex::encode(&bytes))
     }
 
-    // convert bit string with bit-wise big-ending ordering (bits from left to right) to bigint, for example: "10011111,011" -> [249,6] when word = u8
+    // from little ending hex bytes string
+    pub fn from_hex_string(s: &String) -> Self {
+        assert!(s.starts_with("0x"));
+        let bytes = hex::decode(s.strip_prefix("0x").unwrap())
+            .expect("Invalid hex string")
+            .into_iter()
+            .rev()
+            .collect::<Vec<_>>();
+        let words = bytes
+            .chunks(WORD_SIZE / 8)
+            .map(|v| WORD::from_be_bytes(v.try_into().unwrap()))
+            .collect::<Vec<_>>();
+        Self::from(words)
+    }
+
+    // to little ending bit string
+    pub fn to_bit_string(&self) -> String {
+        let bit_string = self
+            .0
+            .iter()
+            .map(|w| {
+                w.to_le_bytes()
+                    .iter()
+                    .map(|b| format!("{:08b}", b).chars().collect::<String>())
+                    .collect::<String>()
+            })
+            .rev()
+            .collect::<String>();
+        format!("0b{}", bit_string.trim_start_matches("0"))
+    }
+
+    // from little ending bit string
     pub fn from_bit_string(s: &String) -> Self {
-        assert!(s.len() <= WORD_SIZE * N);
-        if s.len() == 0 {
+        assert!(s.starts_with("0b"));
+        let bit_string = s.strip_prefix("0b").unwrap();
+        assert!(bit_string.len() <= WORD_SIZE * N);
+        if bit_string.len() == 0 {
             return Self::zero();
         }
         let mut result = Self::zero();
         let (mut w, mut w_mask) = (0 as WORD, 1 as WORD);
-        let bytes = s.as_bytes();
-        for i in 0..bytes.len() {
+        let bit_bytes = bit_string.as_bytes().into_iter().rev().collect::<Vec<_>>();
+        for i in 0..bit_bytes.len() {
             if (i > 0) && (i % WORD_SIZE == 0) {
                 result.0[i / WORD_SIZE - 1] = w;
                 (w, w_mask) = (0 as WORD, 1 as WORD);
             }
-            if bytes[i] == b'1' {
+            if *bit_bytes[i] == b'1' {
                 w += w_mask;
             }
             w_mask <<= 1;
         }
-        result.0[(bytes.len() - 1) / WORD_SIZE] = w;
+        result.0[(bit_bytes.len() - 1) / WORD_SIZE] = w;
         result
     }
 
@@ -184,7 +220,7 @@ impl<const N: usize> From<Vec<WORD>> for BinaryPolynomial<N> {
             Self(v[..N].try_into().unwrap())
         } else {
             let mut result = [0 as WORD; N];
-            result.copy_from_slice(&v);
+            result[..v.len()].copy_from_slice(&v);
             Self(result)
         }
     }
@@ -369,11 +405,23 @@ mod tests {
     use super::*;
     use std::str::FromStr;
 
+    #[test]
+    fn test_hex_string() {
+        let test_data = [(
+            String::from_str("0x06f9").unwrap(),
+            BinaryPolynomial([249, 6, 0, 0]),
+        )];
+        for (v_hex_string, v_expected) in test_data {
+            let v = BinaryPolynomial::<4>::from_hex_string(&v_hex_string);
+            assert_eq!(v, v_expected);
+        }
+    }
+
     // test bit string with big ending (high bit in the end) conversion from/to bigint
     #[test]
     fn test_bit_string() {
         let test_data = [(
-            String::from_str("10011111011").unwrap(),
+            String::from_str("0b11011111001").unwrap(),
             BinaryPolynomial([249, 6, 0, 0]),
         )];
         for (v_bit_string, v_expected) in test_data {
@@ -396,12 +444,14 @@ mod tests {
     #[test]
     fn test_bigint_mul() {
         let test_data = vec![(
-            String::from_str("011011").unwrap(),
-            String::from_str("10011111011").unwrap(),
-            String::from_str("0110010101100101").unwrap(),
-            String::from_str("").unwrap(),
+            String::from_str("0b110110").unwrap(),
+            String::from_str("0b11011111001").unwrap(),
+            (
+                String::from_str("0b1010011010100110").unwrap(),
+                String::from_str("0b").unwrap(),
+            ),
         )];
-        for (u_bit_string, v_bit_string, w_low_bit_string, w_high_bit_string) in test_data {
+        for (u_bit_string, v_bit_string, (w_low_bit_string, w_high_bit_string)) in test_data {
             let (u, v, w_expected) = (
                 BinaryPolynomial::<4>::from_bit_string(&u_bit_string),
                 BinaryPolynomial::<4>::from_bit_string(&v_bit_string),
@@ -416,6 +466,32 @@ mod tests {
                 (w.0[0].to_bit_string() == w_low_bit_string)
                     && (w.0[1].to_bit_string() == w_high_bit_string)
             );
+        }
+    }
+
+    #[test]
+    fn test_bigint_mul2() {
+        let test_data = vec![(
+            String::from_str("0x0074").unwrap(),
+            String::from_str("0x06f9").unwrap(),
+            (
+                String::from_str("0x1514").unwrap(),
+                String::from_str("0x0001").unwrap(),
+            ),
+        )];
+        for (u_hex_string, v_hex_string, (w_low_hex_string, w_high_hex_string)) in test_data {
+            let (u, v, w_expected) = (
+                BinaryPolynomial::<2>::from_hex_string(&u_hex_string),
+                BinaryPolynomial::<2>::from_hex_string(&v_hex_string),
+                BinaryPolynomial2([
+                    BinaryPolynomial::<2>::from_hex_string(&w_low_hex_string),
+                    BinaryPolynomial::<2>::from_hex_string(&w_high_hex_string),
+                ]),
+            );
+            let w = u * v;
+            assert_eq!(w, w_expected);
+            assert_eq!(w.0[0].to_hex_string(), w_low_hex_string);
+            assert_eq!(w.0[1].to_hex_string(), w_high_hex_string);
         }
     }
 
@@ -434,17 +510,17 @@ mod tests {
     fn test_bigint_squaring() {
         let test_data = [
             (
-                String::from_str("10011111011").unwrap(),
+                String::from_str("0b11011111001").unwrap(),
                 [
-                    String::from_str("1000001010101010").unwrap(),
-                    String::from_str("0010100000000000").unwrap(),
+                    String::from_str("0b0101010101000001").unwrap(),
+                    String::from_str("0b0000000000010100").unwrap(),
                 ],
             ),
             (
-                String::from_str("1001111100100101").unwrap(),
+                String::from_str("0b1010010011111001").unwrap(),
                 [
-                    String::from_str("1000001010101010").unwrap(),
-                    String::from_str("0000100000100010").unwrap(),
+                    String::from_str("0b0101010101000001").unwrap(),
+                    String::from_str("0b0100010000010000").unwrap(),
                 ],
             ),
         ];
