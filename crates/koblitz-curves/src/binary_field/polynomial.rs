@@ -1,6 +1,6 @@
 use hex;
 use std::fmt::Debug;
-use std::ops::{Add, Mul, Neg, Shl, Sub};
+use std::ops::{Add, Mul, Neg, Shl, Shr, Sub};
 
 // u8 word only for testing purpose, actually we will use u32 or u64 as one word
 pub type WORD = u8;
@@ -66,7 +66,11 @@ impl<const N: usize> BinaryPolynomial<N> {
     // from little ending hex bytes string
     pub fn from_hex_string(s: &String) -> Self {
         assert!(s.starts_with("0x"));
-        let bytes = hex::decode(s.strip_prefix("0x").unwrap())
+        let mut s_trimed = s.strip_prefix("0x").unwrap().to_string();
+        if s_trimed.len() % 2 == 1 {
+            s_trimed = format!("0{}", s_trimed);
+        }
+        let bytes = hex::decode(s_trimed)
             .expect("Invalid hex string")
             .into_iter()
             .rev()
@@ -175,8 +179,8 @@ impl<const N: usize> BinaryPolynomial<N> {
             .map(|v| WORD::from_be_bytes(v.try_into().unwrap()))
             .collect::<Vec<_>>();
         BinaryPolynomial2([
-            Self(words[..N].try_into().unwrap()),
-            Self(words[N..].try_into().unwrap()),
+            Self::from(words[..N].to_vec()),
+            Self::from(words[N..].to_vec()),
         ])
     }
 
@@ -190,19 +194,19 @@ impl<const N: usize> BinaryPolynomial<N> {
     }
 
     pub fn shr_words(&self, n: usize) -> (Self, Self) {
-        assert!(n <= N);
+        assert!(n < N);
         (
-            Self(self.0[n..].try_into().unwrap()),
-            Self(self.0[..n].try_into().unwrap()),
+            Self::from(self.0[n..].to_vec()),
+            Self::from(self.0[..n].to_vec()),
         )
     }
 
     pub fn shl_words(&self, n: usize) -> (Self, Self) {
-        assert!(n <= N);
-        (
-            Self(self.0[0..(N - n)].try_into().unwrap()),
-            Self(self.0[(N - n)..].try_into().unwrap()),
-        )
+        assert!(n < N);
+        let mut left = BinaryPolynomial::<N>::zero();
+        left.0[n..].copy_from_slice(&self.0[..(N - n)]);
+        let right = Self::from(self.0[(N - 1 - n)..].to_vec());
+        (left, right)
     }
 }
 
@@ -313,6 +317,26 @@ impl<const N: usize> Shl<usize> for BinaryPolynomial<N> {
     }
 }
 
+impl<const N: usize> Shr<usize> for BinaryPolynomial<N> {
+    type Output = Self;
+
+    fn shr(self, shift: usize) -> Self::Output {
+        let mut result = [0 as WORD; N];
+        let word_shift = shift / WORD_SIZE;
+        let bit_shift = shift % WORD_SIZE;
+
+        for i in 0..N {
+            if i >= word_shift {
+                result[N - 1 - i] = self.0[N - 1 - i + word_shift] >> bit_shift;
+                if bit_shift > 0 && i - word_shift > 0 {
+                    result[N - 1 - i] |= self.0[N - i + word_shift] << (WORD_SIZE - bit_shift);
+                }
+            }
+        }
+        BinaryPolynomial(result)
+    }
+}
+
 impl<const N: usize> Neg for BinaryPolynomial<N> {
     type Output = Self;
 
@@ -331,6 +355,27 @@ impl<const N: usize> Sub<Self> for BinaryPolynomial<N> {
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct BinaryPolynomial2<const N: usize>(pub [BinaryPolynomial<N>; 2]);
+
+#[allow(dead_code)]
+impl<const N: usize> BinaryPolynomial2<N> {
+    // split two binary polynomial at a index within the lower one
+    pub fn split_at(&self, index: usize) -> [BinaryPolynomial<N>; 2] {
+        assert!(index < N * WORD_SIZE);
+
+        let mut result = [BinaryPolynomial::<N>::zero(); 2];
+        result[0] = (self.0[0] << (N * WORD_SIZE - index)) >> (N * WORD_SIZE - index);
+        result[1] = (self.0[1] << (N * WORD_SIZE - index)) + (self.0[0] >> index);
+        result
+    }
+}
+
+impl<const N: usize> From<BinaryPolynomial<N>> for BinaryPolynomial2<N> {
+    fn from(v: BinaryPolynomial<N>) -> Self {
+        let mut result = Self::zero();
+        result.0[0] = v;
+        result
+    }
+}
 
 impl<const N: usize> BinaryPolynomial2<N> {
     pub fn zero() -> Self {
@@ -538,5 +583,14 @@ mod tests {
                 "Test for BinaryPolynomial::squaring failed!"
             );
         }
+    }
+
+    #[test]
+    fn test_trunk_add() {
+        let u = BinaryPolynomial([249, 6, 0, 0]);
+        let v = BinaryPolynomial([32, 5, 0, 0]);
+        let w_expected = BinaryPolynomial([249, 38, 5, 0]);
+        let w = u.trunc_add(1, v);
+        assert_eq!(w, w_expected);
     }
 }
