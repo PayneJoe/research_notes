@@ -1,5 +1,5 @@
-use crate::integer_quadratic::{BIAS, IntegerBaseField, IntegerQuadraticField, MU};
-use crate::{Canonical, Modulos};
+use crate::tau_expansion::integer_quadratic::{BIAS, IntegerBaseField, IntegerQuadraticField, MU};
+use crate::tau_expansion::{Canonical, Modulos};
 use core::ops::{Add, Div, Mul, Neg, Sub};
 
 #[derive(Copy, Clone, Debug)]
