@@ -161,8 +161,8 @@ mod tests {
     #[test]
     fn test_fq_reduce() {
         let test_data = [(
-            String::from_str("0x03ba4d15e1e974d9279e5a5c527a157742b845827b").unwrap(),
-            String::from_str("0x03ba4d15e1e974d9279e5a5c527a157742b845827b").unwrap(),
+            String::from_str("0x00000003ba4d15e1e974d9279e5a5c527a157742b845827b").unwrap(),
+            String::from_str("0x00000003ba4d15e1e974d9279e5a5c527a157742b845827b").unwrap(),
         )];
         for (v_hex_string, v_reduced_hex_string) in test_data {
             let v = Fq::from_hex_string(&v_hex_string);
