@@ -43,6 +43,7 @@ pub struct BinaryPolynomial<const N: usize>(pub [WORD; N]);
 
 #[allow(dead_code)]
 impl<const N: usize> BinaryPolynomial<N> {
+    // set one bit in binary polynomial
     pub fn set_bit(&mut self, word_offset: usize, bit_offset: usize, bit: u8) {
         assert!((word_offset < N) && (bit_offset < WORD_SIZE));
         assert!((bit == 0u8) || (bit == 1u8));
@@ -54,6 +55,7 @@ impl<const N: usize> BinaryPolynomial<N> {
         }
     }
 
+    // get one bit in binary polynomial
     pub fn get_bit(&self, word_offset: usize, bit_offset: usize) -> u8 {
         assert!((word_offset < N) && (bit_offset < WORD_SIZE));
         let word_mask = 1 << bit_offset;
@@ -62,6 +64,13 @@ impl<const N: usize> BinaryPolynomial<N> {
         } else {
             0u8
         }
+    }
+
+    // a simpler method
+    pub fn bit(&self, offset: usize) -> u8 {
+        assert!(offset < N * WORD_SIZE);
+        let (word_offset, bit_offset) = (offset / WORD_SIZE, offset % WORD_SIZE);
+        self.get_bit(word_offset, bit_offset)
     }
 
     pub fn at(&self, index: usize) -> Option<&WORD> {
@@ -144,23 +153,23 @@ impl<const N: usize> BinaryPolynomial<N> {
         result
     }
 
-    // modulus polynomial is assumed to be monic: X^N + h(x)
-    // remove the leading one bit, so that we can obtain the residual polynomial h(x)
-    pub fn strip_leading_one(&self) -> Self {
+    // the degree of binary polynomial
+    pub fn degree(&self) -> usize {
         if self.is_zero() {
-            return *self;
+            return 0;
         }
-        let mut shift = 0 as usize;
+        let mut n = 0 as usize;
         for i in (0..N).rev() {
             let zeros = self.0[i].leading_zeros() as usize;
-            if (shift == 0) && (zeros < WORD_SIZE) {
-                shift += zeros;
+            if (n % WORD_SIZE == 0) && (zeros < WORD_SIZE) {
+                n += zeros;
                 break;
             }
-            shift += WORD_SIZE;
+            n += WORD_SIZE;
         }
-        *self << shift
+        N * WORD_SIZE - 1 - n
     }
+
     pub fn zero() -> Self {
         Self([0 as WORD; N])
     }
@@ -172,7 +181,11 @@ impl<const N: usize> BinaryPolynomial<N> {
     }
 
     pub fn is_zero(&self) -> bool {
-        self.0 == [0 as WORD; N]
+        *self == Self::zero()
+    }
+
+    pub fn is_one(&self) -> bool {
+        *self == Self::one()
     }
 
     // Algorithm 2.39 in "Gude to Elliptic Curve Cryptography"
@@ -322,11 +335,12 @@ impl<const N: usize> Shl<usize> for BinaryPolynomial<N> {
     type Output = Self;
 
     fn shl(self, shift: usize) -> Self::Output {
-        let mut result = [0 as WORD; N];
+        let num_words = N;
+        let mut result = vec![0 as WORD; num_words];
         let word_shift = shift / WORD_SIZE;
         let bit_shift = shift % WORD_SIZE;
 
-        for i in (0..N).rev() {
+        for i in (0..num_words).rev() {
             if i >= word_shift {
                 result[i] = self.0[i - word_shift] << bit_shift;
                 if bit_shift > 0 && i - word_shift > 0 {
@@ -334,7 +348,7 @@ impl<const N: usize> Shl<usize> for BinaryPolynomial<N> {
                 }
             }
         }
-        BinaryPolynomial(result)
+        BinaryPolynomial::from(result)
     }
 }
 
@@ -342,19 +356,21 @@ impl<const N: usize> Shr<usize> for BinaryPolynomial<N> {
     type Output = Self;
 
     fn shr(self, shift: usize) -> Self::Output {
-        let mut result = [0 as WORD; N];
+        let num_words = N;
+        let mut result = vec![0 as WORD; num_words];
         let word_shift = shift / WORD_SIZE;
         let bit_shift = shift % WORD_SIZE;
 
-        for i in 0..N {
+        for i in 0..num_words {
             if i >= word_shift {
-                result[N - 1 - i] = self.0[N - 1 - i + word_shift] >> bit_shift;
+                result[num_words - 1 - i] = self.0[num_words - 1 - i + word_shift] >> bit_shift;
                 if bit_shift > 0 && i - word_shift > 0 {
-                    result[N - 1 - i] |= self.0[N - i + word_shift] << (WORD_SIZE - bit_shift);
+                    result[num_words - 1 - i] |=
+                        self.0[num_words - i + word_shift] << (WORD_SIZE - bit_shift);
                 }
             }
         }
-        BinaryPolynomial(result)
+        BinaryPolynomial::from(result)
     }
 }
 
@@ -379,6 +395,41 @@ pub struct BinaryPolynomial2<const N: usize>(pub [BinaryPolynomial<N>; 2]);
 
 #[allow(dead_code)]
 impl<const N: usize> BinaryPolynomial2<N> {
+    pub fn is_one(&self) -> bool {
+        self.0[1].is_zero() && self.0[0].is_one()
+    }
+
+    pub fn is_zero(&self) -> bool {
+        self.0[0].is_zero() && self.0[1].is_zero()
+    }
+
+    // get the degree of binary polynomial
+    pub fn degree(&self) -> usize {
+        let high_degree = self.0[1].degree();
+        if high_degree > 0 {
+            high_degree + N
+        } else {
+            self.0[0].degree()
+        }
+    }
+
+    // get one bit of specific offset
+    pub fn bit(&self, offset: usize) -> u8 {
+        assert!(offset < 2 * N * WORD_SIZE);
+        if offset < N {
+            self.0[0].bit(offset)
+        } else {
+            self.0[1].bit(offset - N)
+        }
+    }
+
+    // swap two binary polynomials
+    pub fn swap(&mut self, other: &mut Self) {
+        let tmp = *self;
+        *self = *other;
+        *other = tmp;
+    }
+
     // split two binary polynomial at a index within the lower one
     pub fn split_at(&self, index: usize) -> [BinaryPolynomial<N>; 2] {
         assert!(index < N * WORD_SIZE);
@@ -398,6 +449,19 @@ impl<const N: usize> From<BinaryPolynomial<N>> for BinaryPolynomial2<N> {
     }
 }
 
+impl<const N: usize> From<Vec<WORD>> for BinaryPolynomial2<N> {
+    fn from(v: Vec<WORD>) -> Self {
+        if v.len() <= N {
+            BinaryPolynomial2::<N>::from(BinaryPolynomial::<N>::from(v))
+        } else {
+            BinaryPolynomial2([
+                BinaryPolynomial::<N>::from(v[..N].to_vec()),
+                BinaryPolynomial::<N>::from(v[N..].to_vec()),
+            ])
+        }
+    }
+}
+
 impl<const N: usize> BinaryPolynomial2<N> {
     pub fn zero() -> Self {
         Self([BinaryPolynomial::<N>::zero(), BinaryPolynomial::<N>::zero()])
@@ -409,6 +473,14 @@ impl<const N: usize> Add<Self> for BinaryPolynomial2<N> {
 
     fn add(self, rhs: Self) -> Self::Output {
         Self([self.0[0] + rhs.0[0], self.0[1] + rhs.0[1]])
+    }
+}
+
+impl<const N: usize> Sub<Self> for BinaryPolynomial2<N> {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        Self([self.0[0] - rhs.0[0], self.0[1] - rhs.0[1]])
     }
 }
 
@@ -424,14 +496,15 @@ impl<const N: usize> Shl<usize> for BinaryPolynomial2<N> {
     type Output = Self;
 
     fn shl(self, shift: usize) -> Self::Output {
-        let mut result = vec![0 as WORD; 2 * N];
+        let num_words = 2 * N;
+        let mut result = vec![0 as WORD; num_words];
         let word_shift = shift / WORD_SIZE;
         let bit_shift = shift % WORD_SIZE;
 
         let mut words = self.0[0].0.to_vec();
         words.extend_from_slice(&self.0[1].0);
 
-        for i in (0..(2 * N)).rev() {
+        for i in (0..num_words).rev() {
             if i >= word_shift {
                 result[i] = words[i - word_shift] << bit_shift;
                 if bit_shift > 0 && i - word_shift > 0 {
@@ -439,10 +512,33 @@ impl<const N: usize> Shl<usize> for BinaryPolynomial2<N> {
                 }
             }
         }
-        Self([
-            BinaryPolynomial(result[..N].try_into().unwrap()),
-            BinaryPolynomial(result[N..].try_into().unwrap()),
-        ])
+        Self::from(result)
+    }
+}
+
+impl<const N: usize> Shr<usize> for BinaryPolynomial2<N> {
+    type Output = Self;
+
+    fn shr(self, shift: usize) -> Self::Output {
+        let num_words = 2 * N;
+        let mut result = vec![0 as WORD; num_words];
+        let word_shift = shift / WORD_SIZE;
+        let bit_shift = shift % WORD_SIZE;
+
+        let mut words = self.0[0].0.to_vec();
+        words.extend_from_slice(&self.0[1].0);
+
+        for i in 0..num_words {
+            if i >= word_shift {
+                result[num_words - 1 - i] = words[num_words - 1 - i + word_shift] >> bit_shift;
+                if bit_shift > 0 && i - word_shift > 0 {
+                    result[num_words - 1 - i] |=
+                        words[num_words - i + word_shift] << (WORD_SIZE - bit_shift);
+                }
+            }
+        }
+
+        Self::from(result)
     }
 }
 
@@ -461,6 +557,7 @@ pub trait BinaryField<const N: usize>:
     // irreducible binary polynomial: f(X) = X^M + R(X) where M is the degree of binary polynomial, and R(X) is residual polynomial
     // which M <= N * WORD_SIZE, and deg(R) < M
     const M: usize;
+    const F: BinaryPolynomial<N>;
     const R: BinaryPolynomial<N>;
     const UK: [BinaryPolynomial<N>; WORD_SIZE];
     fn reduce(element: BinaryPolynomial2<N>) -> Self;
