@@ -56,6 +56,7 @@ impl Fq {
     }
 
     // Algorithm 2.48 in "Guide to Elliptic Curve Cryptography"
+    // Euclidean based binary field inversion
     pub fn inv(&self) -> Self {
         assert!(*self != Self::zero(), "Zero can not be inversed!");
         let (mut u, mut v) = (

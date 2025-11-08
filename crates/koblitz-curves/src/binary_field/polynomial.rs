@@ -393,6 +393,7 @@ impl<const N: usize> Sub<Self> for BinaryPolynomial<N> {
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct BinaryPolynomial2<const N: usize>(pub [BinaryPolynomial<N>; 2]);
 
+#[allow(dead_code)]
 impl<const N: usize> BinaryPolynomial2<N> {
     pub fn is_one(&self) -> bool {
         self.0[1].is_zero() && self.0[0].is_one()
