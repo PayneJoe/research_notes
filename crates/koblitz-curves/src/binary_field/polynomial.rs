@@ -66,11 +66,18 @@ impl<const N: usize> BinaryPolynomial<N> {
         }
     }
 
-    // a simpler method
-    pub fn bit(&self, offset: usize) -> u8 {
+    // a simpler method for get_bit
+    pub fn get(&self, offset: usize) -> u8 {
         assert!(offset < N * WORD_SIZE);
         let (word_offset, bit_offset) = (offset / WORD_SIZE, offset % WORD_SIZE);
         self.get_bit(word_offset, bit_offset)
+    }
+
+    // a simpler method for set_bit
+    pub fn set(&mut self, offset: usize, bit: u8) {
+        assert!(offset < N * WORD_SIZE);
+        let (word_offset, bit_offset) = (offset / WORD_SIZE, offset % WORD_SIZE);
+        self.set_bit(word_offset, bit_offset, bit);
     }
 
     pub fn at(&self, index: usize) -> Option<&WORD> {
@@ -414,12 +421,12 @@ impl<const N: usize> BinaryPolynomial2<N> {
     }
 
     // get one bit of specific offset
-    pub fn bit(&self, offset: usize) -> u8 {
+    pub fn get(&self, offset: usize) -> u8 {
         assert!(offset < 2 * N * WORD_SIZE);
         if offset < N {
-            self.0[0].bit(offset)
+            self.0[0].get(offset)
         } else {
-            self.0[1].bit(offset - N)
+            self.0[1].get(offset - N)
         }
     }
 

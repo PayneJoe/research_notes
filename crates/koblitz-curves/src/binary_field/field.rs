@@ -11,7 +11,7 @@ pub const N: usize = 24;
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Fq(BinaryPolynomial<N>);
 
-#[allow(dead_code)]
+#[allow(dead_code, non_snake_case)]
 impl Fq {
     pub fn to_hex_string(&self) -> String {
         self.0.to_hex_string()
@@ -45,14 +45,72 @@ impl Fq {
         Self(BinaryPolynomial::<N>::one())
     }
 
+    // get bit value of binary field
+    pub fn get(&self, offset: usize) -> u8 {
+        assert!(offset < M, "offset is too big!");
+        self.0.get(offset)
+    }
+
+    pub fn set(&mut self, offset: usize, bit: u8) {
+        assert!(offset < M, "offset is too big!");
+        self.0.set(offset, bit);
+    }
+
+    // squaring of binary field
     pub fn squaring(&self) -> Self {
         Self::reduce(self.0.squaring())
     }
 
+    // swap two binary field
     pub fn swap(&mut self, other: &mut Self) {
         let tmp = *self;
         *self = *other;
         *other = tmp;
+    }
+
+    // Algorithm 11.50 in "Handbook of Elliptic and HyperElliptic Curve Cryptography"
+    fn modular_composition(&self, r: usize) -> Self {
+        assert!(r < M, "Input parameter r is too big!");
+        let k = (M as f32).sqrt().ceil() as usize;
+        assert!(k * k <= N * WORD_SIZE, "Modular parameter N is too small!");
+        // g[X] = X^{2^r}
+        let g = {
+            let mut tmp = BinaryPolynomial::<N>::zero();
+            tmp.set(r, 1u8);
+            Fq(tmp)
+        };
+
+        // precompute G_i[X] = 1, g, g^2, g^3, ...,g^{k - 1}
+        let mut G = vec![Fq::zero(); k];
+        G[0] = Fq::one();
+        for i in 1..k {
+            G[i] = g * G[i - 1];
+        }
+        let Gk = g * G[k - 1];
+        // precompute P_i[X] = 1, g^k, g^{2k}, g^{3k}, ..., g^{(k - 1)k}
+        let mut P = vec![Fq::zero(); k];
+        P[0] = Fq::one();
+        for i in 1..k {
+            P[i] = Gk * P[i - 1];
+        }
+        // compute F_i(X) = \sum_{j = 0}^{k - 1} f_{i * k + j} G_j[X]
+        let mut F = vec![Fq::zero(); k];
+        for i in 0..k {
+            for j in 0..k {
+                if i * k + j >= M {
+                    continue;
+                }
+                if self.get(i * k + j) == 1u8 {
+                    F[i] = F[i] + G[j];
+                }
+            }
+        }
+        // compute R = \sum_{i = 0}^{k - 1} F_i[X] * P_i[X] (mod m(X))
+        let mut R = Fq::zero();
+        for i in 0..k {
+            R = R + F[i] * P[i];
+        }
+        R
     }
 
     // Algorithm 2.48 in "Guide to Elliptic Curve Cryptography"
@@ -338,6 +396,27 @@ mod tests {
             );
             let u_inv = u.inv();
             assert_eq!(u_inv, u_inv_expected, "Test for Fq inversion failed!");
+        }
+    }
+
+    // compute u(X)^{2^r}
+    #[test]
+    fn test_modular_composition() {
+        let test_data = [(
+            String::from_str("0x0000000644192702d2623c11c05c3196ee6490c8f4927ce5").unwrap(),
+            14,
+            String::from_str("0x00000001f7d227af2aac49163674ef97cc1a086517a6aff0").unwrap(),
+        )];
+        for (u_hex_string, r, u_exp_hex_string) in test_data {
+            let (u, u_exp_expected) = (
+                Fq::from_hex_string(&u_hex_string),
+                Fq::from_hex_string(&u_exp_hex_string),
+            );
+            let u_exp = u.modular_composition(r);
+            assert_eq!(
+                u_exp, u_exp_expected,
+                "Test for Fq modular composition failed!"
+            );
         }
     }
 }
