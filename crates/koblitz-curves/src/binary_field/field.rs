@@ -3,7 +3,7 @@ use crate::binary_field::polynomial::{
 };
 use core::ops::{Add, Div, Mul, Neg, Shl, Shr, Sub};
 
-// binary field Fq = GF(2^m) / f(X), where m = 163
+// binary field Fq = GF(2^m) / f(X), where m = 163 and f(X) = X^163 + X^7 + X^6 + X^3 + 1
 // N = 24 when word = u8
 pub const M: usize = 163;
 pub const N: usize = 24;
@@ -143,6 +143,13 @@ impl Fq {
             y = y * f_n[i];
         }
         y
+    }
+
+    // square root of binary field
+    // \sqrt(f(X)) = f_{even} + \sqrt(X) * f_{odd}, where \sqrt(X) is constant
+    pub fn sqrt(&self) -> Self {
+        let pair = self.0.split();
+        Fq(pair[0]) + Self::reduce(pair[1] * Self::SQ)
     }
 
     // Algorithm 2.48 in "Guide to Elliptic Curve Cryptography"
@@ -292,12 +299,15 @@ impl Sub<Self> for Fq {
 
 impl BinaryField<N> for Fq {
     const M: usize = M;
+    // f(X) = X^163 + r(X)
     const F: BinaryPolynomial<N> = BinaryPolynomial([
         201, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0,
     ]);
+    // r(X) = X^7 + X^6 + X^3 + 1
     const R: BinaryPolynomial<N> = BinaryPolynomial([
         201, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     ]);
+    // uk = r(X), r(X) << 1, r(X) << 2, ..., r(X) << WORD_SIZE
     const UK: [BinaryPolynomial<N>; WORD_SIZE] = [
         BinaryPolynomial([
             201, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -324,6 +334,14 @@ impl BinaryField<N> for Fq {
             128, 100, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         ]),
     ];
+    // \sqrt(X)
+    const SQ: BinaryPolynomial<N> = BinaryPolynomial([
+        176, 182, 109, 219, 182, 109, 219, 182, 109, 219, 146, 36, 73, 146, 36, 73, 146, 36, 73,
+        146, 4, 0, 0, 0,
+    ]);
+    // const SQ: BinaryPolynomial<N> = BinaryPolynomial([
+    //     16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    // ]);
 
     // Algorithm 2.40 in "Guide to Elliptic Curve Cryptography"
     fn reduce(ele: BinaryPolynomial2<N>) -> Self {
@@ -489,6 +507,33 @@ mod tests {
             );
             let u_exp = u.exp(v);
             assert_eq!(u_exp, u_exp_expected, "Test for Fq exp failed!");
+        }
+    }
+
+    #[test]
+    fn test_sqrt() {
+        let test_data = [
+            (
+                String::from_str("0x0000000644192702d2623c11c05c3196ee6490c8f4927ce5").unwrap(),
+                String::from_str("0x00000005259bbd12010474deb2eb16c5813f8b430dec9dde").unwrap(),
+            ),
+            (
+                String::from_str("0x00000004ef895f49b9b91e352a6c05dd3136d6e5249dae50").unwrap(),
+                String::from_str("0x00000004e13ea374aedefd626875d43d7bc11f9a5e00eee8").unwrap(),
+            ),
+        ];
+        assert_eq!(
+            Fq::reduce(Fq::SQ.squaring()),
+            Fq::one() << 1,
+            "Square root of X is not correct!"
+        );
+        for (u_hex_string, u_sqrt_hex_string) in test_data {
+            let (u, u_sqrt_expected) = (
+                Fq::from_hex_string(&u_hex_string),
+                Fq::from_hex_string(&u_sqrt_hex_string),
+            );
+            let u_sqrt = u.sqrt();
+            assert_eq!(u_sqrt, u_sqrt_expected, "Test for Fq sqrt failed!");
         }
     }
 }
