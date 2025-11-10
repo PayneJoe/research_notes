@@ -4,6 +4,7 @@ use super::word::*;
 use hex;
 use std::fmt::Debug;
 use std::ops::{Add, Mul, Neg, Shl, Shr, Sub};
+use std::ops::{Index, IndexMut};
 
 // u8 word only for testing purpose, actually we will use u32 or u64 as one word
 pub type WORD = WORD32;
@@ -415,6 +416,14 @@ pub struct BinaryPolynomial2<const N: usize>(pub [BinaryPolynomial<N>; 2]);
 
 #[allow(dead_code)]
 impl<const N: usize> BinaryPolynomial2<N> {
+    pub fn higher(&self) -> BinaryPolynomial<N> {
+        self.0[1]
+    }
+
+    pub fn lower(&self) -> BinaryPolynomial<N> {
+        self.0[0]
+    }
+
     pub fn is_one(&self) -> bool {
         self.0[1].is_zero() && self.0[0].is_one()
     }
@@ -434,7 +443,7 @@ impl<const N: usize> BinaryPolynomial2<N> {
     }
 
     // get one bit of specific offset
-    pub fn get(&self, offset: usize) -> u8 {
+    pub fn bit(&self, offset: usize) -> u8 {
         assert!(offset < 2 * N * WORD_SIZE);
         if offset < N {
             self.0[0].get(offset)
@@ -459,6 +468,33 @@ impl<const N: usize> BinaryPolynomial2<N> {
         result[0] = (self.0[0] << (N * WORD_SIZE - index)) >> (N * WORD_SIZE - index);
         result[1] = (self.0[1] << (N * WORD_SIZE - index)) + (self.0[0] >> index);
         result
+    }
+}
+
+impl<const N: usize> Index<usize> for BinaryPolynomial2<N> {
+    type Output = WORD;
+
+    fn index(&self, offset: usize) -> &Self::Output {
+        assert!(offset < 2 * N);
+        if offset < N {
+            self.0[0].0.get(offset).expect("Offset out of bounds")
+        } else {
+            self.0[1].0.get(offset - N).expect("offset out of bounds")
+        }
+    }
+}
+
+impl<const N: usize> IndexMut<usize> for BinaryPolynomial2<N> {
+    fn index_mut(&mut self, offset: usize) -> &mut Self::Output {
+        assert!(offset < 2 * N);
+        if offset < N {
+            self.0[0].0.get_mut(offset).expect("offset out of bounds")
+        } else {
+            self.0[1]
+                .0
+                .get_mut(offset - N)
+                .expect("offset out of bounds")
+        }
     }
 }
 
@@ -561,32 +597,6 @@ impl<const N: usize> Shr<usize> for BinaryPolynomial2<N> {
 
         Self::from(result)
     }
-}
-
-#[allow(dead_code)]
-pub trait BinaryField<const N: usize>:
-    Debug
-    + Eq
-    + PartialEq
-    + Copy
-    + Clone
-    + Add<Self, Output = Self>
-    + Sub<Self, Output = Self>
-    + Mul<Self, Output = Self>
-    + Neg<Output = Self>
-{
-    // irreducible binary polynomial: f(X) = X^M + R(X) where M is the degree of binary polynomial, and R(X) is residual polynomial
-    // which M <= N * WORD_SIZE, and deg(R) < M
-    const M: usize;
-    const F: BinaryPolynomial<N>;
-    // degree(R(X)) = k which is a small odd number
-    const R: BinaryPolynomial<N>;
-    // uk = R(X), R(X) << 1, R(X) << 2, ..., R(X) << WORD_SIZE - 1
-    const UK: [BinaryPolynomial<N>; WORD_SIZE];
-    // sqrt(X) = X^{(M + 1) / 2} + X^((k + 1) / 2) when irreducible polynomial m(X) is a trinomial X^M + x^k + 1 and k is a odd number
-    // Note that it works for K-233 field, not works for K-163 field
-    const SQ: BinaryPolynomial<N>;
-    fn reduce(element: BinaryPolynomial2<N>) -> Self;
 }
 
 #[cfg(test)]
