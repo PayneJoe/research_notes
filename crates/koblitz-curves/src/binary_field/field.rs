@@ -3,7 +3,7 @@ use crate::binary_field::polynomial::{
 };
 use core::ops::{Add, Div, Mul, Neg, Shl, Shr, Sub};
 
-// binary field Fq = GF(2^m) / f(X), where m = 163
+// binary field Fq = GF(2^m) / f(X), where m = 163 and f(X) = X^163 + X^7 + X^6 + X^3 + 1
 // N = 24 when word = u8
 pub const M: usize = 163;
 pub const N: usize = 24;
@@ -11,12 +11,14 @@ pub const N: usize = 24;
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Fq(BinaryPolynomial<N>);
 
-#[allow(dead_code)]
+#[allow(dead_code, non_snake_case)]
 impl Fq {
+    // convert to hex string
     pub fn to_hex_string(&self) -> String {
         self.0.to_hex_string()
     }
 
+    // initiate from hex string
     pub fn from_hex_string(s: &String) -> Self {
         assert!(s.starts_with("0x"));
         let hex_string = s.strip_prefix("0x").unwrap().to_string();
@@ -45,14 +47,109 @@ impl Fq {
         Self(BinaryPolynomial::<N>::one())
     }
 
+    // get bit value of binary field
+    pub fn get(&self, offset: usize) -> u8 {
+        assert!(offset < M, "offset is too big!");
+        self.0.get(offset)
+    }
+
+    // set bit value of binary field
+    pub fn set(&mut self, offset: usize, bit: u8) {
+        assert!(offset < M, "offset is too big!");
+        self.0.set(offset, bit);
+    }
+
+    // squaring of binary field
     pub fn squaring(&self) -> Self {
         Self::reduce(self.0.squaring())
     }
 
+    // swap two binary field
     pub fn swap(&mut self, other: &mut Self) {
         let tmp = *self;
         *self = *other;
         *other = tmp;
+    }
+
+    // Modular composition of Brent and Kung, Algorithm 11.50 in "Handbook of Elliptic and HyperElliptic Curve Cryptography"
+    // compute f(X)^{2^r} (mod m(X)) = f(g(X)) (mod m(X)), where g(X) = X^{2^r}, deg(f) < M, deg(g) < M and deg(m) = M
+    fn modular_composition(&self, g: Self) -> Self {
+        let k = (M as f32).sqrt().ceil() as usize;
+        assert!(k * k <= N * WORD_SIZE, "Modular parameter N is too small!");
+        // precompute G_i[X] = 1, g, g^2, g^3, ...,g^{k - 1}
+        let mut G = vec![Fq::zero(); k];
+        G[0] = Fq::one();
+        for i in 1..k {
+            G[i] = g * G[i - 1];
+        }
+        let Gk = g * G[k - 1];
+        // precompute P_i[X] = 1, g^k, g^{2k}, g^{3k}, ..., g^{(k - 1)k}
+        let mut P = vec![Fq::zero(); k];
+        P[0] = Fq::one();
+        for i in 1..k {
+            P[i] = Gk * P[i - 1];
+        }
+        // compute F_i(X) = \sum_{j = 0}^{k - 1} f_{i * k + j} G_j[X]
+        let mut F = vec![Fq::zero(); k];
+        for i in 0..k {
+            for j in 0..k {
+                if i * k + j >= M {
+                    continue;
+                }
+                if self.get(i * k + j) == 1u8 {
+                    F[i] = F[i] + G[j];
+                }
+            }
+        }
+        // compute R = \sum_{i = 0}^{k - 1} F_i[X] * P_i[X] (mod m(X))
+        let mut R = Fq::zero();
+        for i in 0..k {
+            R = R + F[i] * P[i];
+        }
+        R
+    }
+
+    // Shoup exponentiation algorithm for binary field, algorithm 11.53 in "Handbook of Elliptic and HyperElliptic Curve Cryptography"
+    // compute f(X)^{n(X)} (mod m(X)) = f(X)^{n_0(X) + n_1(X) * t(X) + n_2(X) * t(X)^2 + ... + n_{l - 1}(X) * t(X)^{l - 1}}
+    pub fn exp(&self, e: BinaryPolynomial<N>) -> Self {
+        assert!(e.degree() < M, "Input parameter n is too big!");
+        let r = (M as f64 / (M as f64).log2()).ceil() as usize;
+        let n = e.chunks(r);
+        let l = n.len();
+        // precompute f^{ni}(X) (mod m(X))
+        let mut f_pow_2 = vec![Fq::zero(); r];
+        f_pow_2[0] = *self;
+        for i in 1..r {
+            f_pow_2[i] = f_pow_2[i - 1].squaring();
+        }
+        let mut f_n = vec![Fq::one(); l];
+        for i in 0..n.len() {
+            for j in 0..r {
+                let mask = 1 << j;
+                if n[i] & mask == mask {
+                    f_n[i] = f_n[i] * f_pow_2[j];
+                }
+            }
+        }
+        // compute g(X) = X^{2^r} (mod m(X))
+        let mut g = Fq::one() << 1;
+        for _ in 1..(r + 1) {
+            g = g.squaring();
+        }
+        // f^n = f^{n_0 + t * n_1 + t^2 * n_2 + ... + t^{l - 1} * n_{l - 1}}
+        let mut y = Fq::one();
+        for i in (0..l).rev() {
+            y = y.modular_composition(g);
+            y = y * f_n[i];
+        }
+        y
+    }
+
+    // square root of binary field
+    // \sqrt(f(X)) = f_{even} + \sqrt(X) * f_{odd}, where \sqrt(X) is constant
+    pub fn sqrt(&self) -> Self {
+        let pair = self.0.split();
+        Fq(pair[0]) + Self::reduce(pair[1] * Self::SQ)
     }
 
     // Algorithm 2.48 in "Guide to Elliptic Curve Cryptography"
@@ -202,12 +299,15 @@ impl Sub<Self> for Fq {
 
 impl BinaryField<N> for Fq {
     const M: usize = M;
+    // f(X) = X^163 + r(X)
     const F: BinaryPolynomial<N> = BinaryPolynomial([
         201, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0,
     ]);
+    // r(X) = X^7 + X^6 + X^3 + 1
     const R: BinaryPolynomial<N> = BinaryPolynomial([
         201, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     ]);
+    // uk = r(X), r(X) << 1, r(X) << 2, ..., r(X) << WORD_SIZE
     const UK: [BinaryPolynomial<N>; WORD_SIZE] = [
         BinaryPolynomial([
             201, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -234,6 +334,14 @@ impl BinaryField<N> for Fq {
             128, 100, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         ]),
     ];
+    // \sqrt(X)
+    const SQ: BinaryPolynomial<N> = BinaryPolynomial([
+        176, 182, 109, 219, 182, 109, 219, 182, 109, 219, 146, 36, 73, 146, 36, 73, 146, 36, 73,
+        146, 4, 0, 0, 0,
+    ]);
+    // const SQ: BinaryPolynomial<N> = BinaryPolynomial([
+    //     16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    // ]);
 
     // Algorithm 2.40 in "Guide to Elliptic Curve Cryptography"
     fn reduce(ele: BinaryPolynomial2<N>) -> Self {
@@ -338,6 +446,94 @@ mod tests {
             );
             let u_inv = u.inv();
             assert_eq!(u_inv, u_inv_expected, "Test for Fq inversion failed!");
+        }
+    }
+
+    #[test]
+    fn test_modular_composition() {
+        let test_data = [
+            (
+                String::from_str("0x0000000644192702d2623c11c05c3196ee6490c8f4927ce5").unwrap(),
+                6,
+                String::from_str("0x00000000450b6a50952ac24a14d9f76f3ace3589d834f43f").unwrap(),
+            ),
+            (
+                String::from_str("0x0000000644192702d2623c11c05c3196ee6490c8f4927ce5").unwrap(),
+                4,
+                String::from_str("0x000000024cacd7866a2f9d4925076fbffd9aacf1c84c3337").unwrap(),
+            ),
+        ];
+        for (u_hex_string, r, u_exp_hex_string) in test_data {
+            let (u, u_exp_expected) = (
+                Fq::from_hex_string(&u_hex_string),
+                Fq::from_hex_string(&u_exp_hex_string),
+            );
+            assert!((1 << r) < M, "Input parameter r is too big!");
+            // g[X] = X^{2^r}
+            let g = {
+                let mut v = Fq::one() << 1;
+                for _ in 1..(r + 1) {
+                    v = v.squaring();
+                }
+                v
+            };
+            let u_exp = u.modular_composition(g);
+            assert_eq!(
+                u_exp, u_exp_expected,
+                "Test for Fq modular composition failed!"
+            );
+        }
+    }
+
+    #[test]
+    fn test_exp() {
+        let test_data = [
+            (
+                String::from_str("0x0000000644192702d2623c11c05c3196ee6490c8f4927ce5").unwrap(),
+                String::from_str("0x00000004ef895f49b9b91e352a6c05dd3136d6e5249dae50").unwrap(),
+                String::from_str("0x00000006da1d5965226836a80b556c2c98b9800ad80999e3").unwrap(),
+            ),
+            (
+                String::from_str("0x0000000644192702d2623c11c05c3196ee6490c8f4927ce5").unwrap(),
+                String::from_str("0x00000006b15a564aaf5e7df8d4424c03bc35bd7c2c61e17e").unwrap(),
+                String::from_str("0x00000005fab6120618128021ab4a0b400b96c5663e337292").unwrap(),
+            ),
+        ];
+        for (u_hex_string, v_hex_string, u_exp_hex_string) in test_data {
+            let (u, v, u_exp_expected) = (
+                Fq::from_hex_string(&u_hex_string),
+                BinaryPolynomial::<N>::from_hex_string(&v_hex_string),
+                Fq::from_hex_string(&u_exp_hex_string),
+            );
+            let u_exp = u.exp(v);
+            assert_eq!(u_exp, u_exp_expected, "Test for Fq exp failed!");
+        }
+    }
+
+    #[test]
+    fn test_sqrt() {
+        let test_data = [
+            (
+                String::from_str("0x0000000644192702d2623c11c05c3196ee6490c8f4927ce5").unwrap(),
+                String::from_str("0x00000005259bbd12010474deb2eb16c5813f8b430dec9dde").unwrap(),
+            ),
+            (
+                String::from_str("0x00000004ef895f49b9b91e352a6c05dd3136d6e5249dae50").unwrap(),
+                String::from_str("0x00000004e13ea374aedefd626875d43d7bc11f9a5e00eee8").unwrap(),
+            ),
+        ];
+        assert_eq!(
+            Fq::reduce(Fq::SQ.squaring()),
+            Fq::one() << 1,
+            "Square root of X is not correct!"
+        );
+        for (u_hex_string, u_sqrt_hex_string) in test_data {
+            let (u, u_sqrt_expected) = (
+                Fq::from_hex_string(&u_hex_string),
+                Fq::from_hex_string(&u_sqrt_hex_string),
+            );
+            let u_sqrt = u.sqrt();
+            assert_eq!(u_sqrt, u_sqrt_expected, "Test for Fq sqrt failed!");
         }
     }
 }

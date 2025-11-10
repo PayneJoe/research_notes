@@ -11,11 +11,18 @@ pub const WORD_SIZE: usize = 8;
 pub const WINDOW_SIZE: usize = 4;
 
 #[allow(dead_code)]
-pub trait BinaryPolynomialSquaring: Sized {
+pub trait Binary: Sized {
     fn squaring(&self) -> [Self; 2];
+    fn to_be_bits(&self) -> Vec<u8>;
 }
 
-impl BinaryPolynomialSquaring for u8 {
+impl Binary for u8 {
+    fn to_be_bits(&self) -> Vec<u8> {
+        (0..8)
+            .map(|i| if (self >> i) & 1 == 1 { 1u8 } else { 0u8 })
+            .collect::<Vec<_>>()
+    }
+
     // squaring a byte would blow up two times of its capacity
     fn squaring(&self) -> [Self; 2] {
         let mut result = [0 as u8; 2];
@@ -43,6 +50,50 @@ pub struct BinaryPolynomial<const N: usize>(pub [WORD; N]);
 
 #[allow(dead_code)]
 impl<const N: usize> BinaryPolynomial<N> {
+    // split BinaryPolynimal2 into a even and odd BinaryPolynomial,
+    // this is for the purpose of sqrt
+    pub fn split(&self) -> [BinaryPolynomial<N>; 2] {
+        let bit_vec = self.to_be_bits();
+        let even = bit_vec.iter().step_by(2).map(|b| *b).collect::<Vec<_>>();
+        let odd = bit_vec
+            .iter()
+            .skip(1)
+            .step_by(2)
+            .map(|b| *b)
+            .collect::<Vec<_>>();
+        [
+            BinaryPolynomial::from_be_bits(even),
+            BinaryPolynomial::from_be_bits(odd),
+        ]
+    }
+
+    // to bit vec with big ending order
+    pub fn to_be_bits(&self) -> Vec<u8> {
+        self.0
+            .map(|w| w.to_be_bytes().map(|b| b.to_be_bits()).concat())
+            .concat()
+    }
+
+    // chunk a binary polynomial with a specific size
+    pub fn chunks(&self, size: usize) -> Vec<u32> {
+        assert!(size <= 32, "chunk size is too big!");
+        let n = ((N * WORD_SIZE) as f32 / size as f32).ceil() as usize;
+        let mut result = vec![0u32; n];
+        let (mut word, mut word_mask) = (0u32, 1u32);
+        for i in 0..(N * WORD_SIZE) {
+            if (i > 0) && (i % size == 0) {
+                result[i / size - 1] = word;
+                (word, word_mask) = (0u32, 1u32);
+            }
+            if self.get(i) == 1u8 {
+                word += word_mask;
+            }
+            word_mask <<= 1;
+        }
+        result[n - 1] = word;
+        result
+    }
+
     // set one bit in binary polynomial
     pub fn set_bit(&mut self, word_offset: usize, bit_offset: usize, bit: u8) {
         assert!((word_offset < N) && (bit_offset < WORD_SIZE));
@@ -66,11 +117,18 @@ impl<const N: usize> BinaryPolynomial<N> {
         }
     }
 
-    // a simpler method
-    pub fn bit(&self, offset: usize) -> u8 {
+    // a simpler method for get_bit
+    pub fn get(&self, offset: usize) -> u8 {
         assert!(offset < N * WORD_SIZE);
         let (word_offset, bit_offset) = (offset / WORD_SIZE, offset % WORD_SIZE);
         self.get_bit(word_offset, bit_offset)
+    }
+
+    // a simpler method for set_bit
+    pub fn set(&mut self, offset: usize, bit: u8) {
+        assert!(offset < N * WORD_SIZE);
+        let (word_offset, bit_offset) = (offset / WORD_SIZE, offset % WORD_SIZE);
+        self.set_bit(word_offset, bit_offset, bit);
     }
 
     pub fn at(&self, index: usize) -> Option<&WORD> {
@@ -128,29 +186,39 @@ impl<const N: usize> BinaryPolynomial<N> {
         format!("0b{}", bit_string.trim_start_matches("0"))
     }
 
-    // from little ending bit string
-    pub fn from_bit_string(s: &String) -> Self {
-        assert!(s.starts_with("0b"));
-        let bit_string = s.strip_prefix("0b").unwrap();
-        assert!(bit_string.len() <= WORD_SIZE * N);
-        if bit_string.len() == 0 {
+    // from bit vec with big ending
+    pub fn from_be_bits(bit_vec: Vec<u8>) -> Self {
+        let n = bit_vec.len();
+        assert!(n <= N * WORD_SIZE);
+        if n == 0 {
             return Self::zero();
         }
         let mut result = Self::zero();
         let (mut w, mut w_mask) = (0 as WORD, 1 as WORD);
-        let bit_bytes = bit_string.as_bytes().into_iter().rev().collect::<Vec<_>>();
-        for i in 0..bit_bytes.len() {
+        for i in 0..n {
             if (i > 0) && (i % WORD_SIZE == 0) {
                 result.0[i / WORD_SIZE - 1] = w;
                 (w, w_mask) = (0 as WORD, 1 as WORD);
             }
-            if *bit_bytes[i] == b'1' {
+            if bit_vec[i] == 1u8 {
                 w += w_mask;
             }
             w_mask <<= 1;
         }
-        result.0[(bit_bytes.len() - 1) / WORD_SIZE] = w;
+        result.0[(n - 1) / WORD_SIZE] = w;
         result
+    }
+
+    // from bit string with little ending
+    pub fn from_bit_string(s: &String) -> Self {
+        assert!(s.starts_with("0b"));
+        let bit_vec = s
+            .chars()
+            .skip(2)
+            .into_iter()
+            .map(|c| if c == '1' { 1u8 } else { 0u8 })
+            .collect::<Vec<_>>();
+        Self::from_be_bits(bit_vec.into_iter().rev().collect::<Vec<_>>())
     }
 
     // the degree of binary polynomial
@@ -414,12 +482,12 @@ impl<const N: usize> BinaryPolynomial2<N> {
     }
 
     // get one bit of specific offset
-    pub fn bit(&self, offset: usize) -> u8 {
+    pub fn get(&self, offset: usize) -> u8 {
         assert!(offset < 2 * N * WORD_SIZE);
         if offset < N {
-            self.0[0].bit(offset)
+            self.0[0].get(offset)
         } else {
-            self.0[1].bit(offset - N)
+            self.0[1].get(offset - N)
         }
     }
 
@@ -430,7 +498,8 @@ impl<const N: usize> BinaryPolynomial2<N> {
         *other = tmp;
     }
 
-    // split two binary polynomial at a index within the lower one
+    // split a BinaryPolynomial2 at a index within the lower one,
+    // this is for the purpose of reducing a BinaryPolynomial2 to a BinaryPolynomial
     pub fn split_at(&self, index: usize) -> [BinaryPolynomial<N>; 2] {
         assert!(index < N * WORD_SIZE);
 
@@ -558,8 +627,13 @@ pub trait BinaryField<const N: usize>:
     // which M <= N * WORD_SIZE, and deg(R) < M
     const M: usize;
     const F: BinaryPolynomial<N>;
+    // degree(R(X)) = k which is a small odd number
     const R: BinaryPolynomial<N>;
+    // uk = R(X), R(X) << 1, R(X) << 2, ..., R(X) << WORD_SIZE - 1
     const UK: [BinaryPolynomial<N>; WORD_SIZE];
+    // sqrt(X) = X^{(M + 1) / 2} + X^((k + 1) / 2) when irreducible polynomial m(X) is a trinomial X^M + x^k + 1 and k is a odd number
+    // Note that it works for K-233 field, not works for K-163 field
+    const SQ: BinaryPolynomial<N>;
     fn reduce(element: BinaryPolynomial2<N>) -> Self;
 }
 
