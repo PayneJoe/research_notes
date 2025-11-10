@@ -465,11 +465,18 @@ mod tests {
 
     #[test]
     fn test_exp() {
-        let test_data = [(
-            String::from_str("0x0000000644192702d2623c11c05c3196ee6490c8f4927ce5").unwrap(),
-            String::from_str("0x00000004ef895f49b9b91e352a6c05dd3136d6e5249dae50").unwrap(),
-            String::from_str("0x00000006da1d5965226836a80b556c2c98b9800ad80999e3").unwrap(),
-        )];
+        let test_data = [
+            (
+                String::from_str("0x0000000644192702d2623c11c05c3196ee6490c8f4927ce5").unwrap(),
+                String::from_str("0x00000004ef895f49b9b91e352a6c05dd3136d6e5249dae50").unwrap(),
+                String::from_str("0x00000006da1d5965226836a80b556c2c98b9800ad80999e3").unwrap(),
+            ),
+            (
+                String::from_str("0x0000000644192702d2623c11c05c3196ee6490c8f4927ce5").unwrap(),
+                String::from_str("0x00000006b15a564aaf5e7df8d4424c03bc35bd7c2c61e17e").unwrap(),
+                String::from_str("0x00000005fab6120618128021ab4a0b400b96c5663e337292").unwrap(),
+            ),
+        ];
         for (u_hex_string, v_hex_string, u_exp_hex_string) in test_data {
             let (u, v, u_exp_expected) = (
                 Fq::from_hex_string(&u_hex_string),
