@@ -43,6 +43,26 @@ pub struct BinaryPolynomial<const N: usize>(pub [WORD; N]);
 
 #[allow(dead_code)]
 impl<const N: usize> BinaryPolynomial<N> {
+    // chunk a binary polynomial with a specific size
+    pub fn chunks(&self, size: usize) -> Vec<u32> {
+        assert!(size <= 32, "chunk size is too big!");
+        let n = ((N * WORD_SIZE) as f32 / size as f32).ceil() as usize;
+        let mut result = vec![0u32; n];
+        let (mut word, mut word_mask) = (0u32, 1u32);
+        for i in 0..(N * WORD_SIZE) {
+            if (i > 0) && (i % size == 0) {
+                result[i / size - 1] = word;
+                (word, word_mask) = (0u32, 1u32);
+            }
+            if self.get(i) == 1u8 {
+                word += word_mask;
+            }
+            word_mask <<= 1;
+        }
+        result[n - 1] = word;
+        result
+    }
+
     // set one bit in binary polynomial
     pub fn set_bit(&mut self, word_offset: usize, bit_offset: usize, bit: u8) {
         assert!((word_offset < N) && (bit_offset < WORD_SIZE));

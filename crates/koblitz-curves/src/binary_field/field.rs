@@ -68,18 +68,11 @@ impl Fq {
         *other = tmp;
     }
 
-    // Algorithm 11.50 in "Handbook of Elliptic and HyperElliptic Curve Cryptography"
-    fn modular_composition(&self, r: usize) -> Self {
-        assert!(r < M, "Input parameter r is too big!");
+    // Modular composition of Brent and Kung, Algorithm 11.50 in "Handbook of Elliptic and HyperElliptic Curve Cryptography"
+    // compute f(X)^{2^r} (mod m(X)) = f(g(X)) (mod m(X)), where g(X) = X^{2^r}, deg(f) < M, deg(g) < M and deg(m) = M
+    fn modular_composition(&self, g: Self) -> Self {
         let k = (M as f32).sqrt().ceil() as usize;
         assert!(k * k <= N * WORD_SIZE, "Modular parameter N is too small!");
-        // g[X] = X^{2^r}
-        let g = {
-            let mut tmp = BinaryPolynomial::<N>::zero();
-            tmp.set(r, 1u8);
-            Fq(tmp)
-        };
-
         // precompute G_i[X] = 1, g, g^2, g^3, ...,g^{k - 1}
         let mut G = vec![Fq::zero(); k];
         G[0] = Fq::one();
@@ -111,6 +104,41 @@ impl Fq {
             R = R + F[i] * P[i];
         }
         R
+    }
+
+    // Shoup exponentiation algorithm for binary field
+    pub fn exp(&self, e: BinaryPolynomial<N>) -> Self {
+        assert!(e.degree() < M, "Input parameter n is too big!");
+        let r = (M as f64 / (M as f64).log2()).ceil() as usize;
+        let n = e.chunks(r);
+        let l = n.len();
+        // precompute f^{ni}(X) (mod m(X))
+        let mut f_pow_2 = vec![Fq::zero(); r];
+        f_pow_2[0] = *self;
+        for i in 1..r {
+            f_pow_2[i] = f_pow_2[i - 1].squaring();
+        }
+        let mut f_n = vec![Fq::one(); l];
+        for i in 0..n.len() {
+            for j in 0..r {
+                let mask = 1 << j;
+                if n[i] & mask == mask {
+                    f_n[i] = f_n[i] * f_pow_2[j];
+                }
+            }
+        }
+        // compute g(X) = X^{2^r} (mod m(X))
+        let mut g = Fq::one() << 1;
+        for _ in 1..(r + 1) {
+            g = g.squaring();
+        }
+        // f^n = f^{n_0 + t * n_1 + t^2 * n_2 + ... + t^{l - 1} * n_{l - 1}}
+        let mut y = Fq::one();
+        for i in (0..l).rev() {
+            y = y.modular_composition(g);
+            y = y * f_n[i];
+        }
+        y
     }
 
     // Algorithm 2.48 in "Guide to Elliptic Curve Cryptography"
@@ -399,24 +427,57 @@ mod tests {
         }
     }
 
-    // compute u(X)^{2^r}
     #[test]
     fn test_modular_composition() {
-        let test_data = [(
-            String::from_str("0x0000000644192702d2623c11c05c3196ee6490c8f4927ce5").unwrap(),
-            14,
-            String::from_str("0x00000001f7d227af2aac49163674ef97cc1a086517a6aff0").unwrap(),
-        )];
+        let test_data = [
+            (
+                String::from_str("0x0000000644192702d2623c11c05c3196ee6490c8f4927ce5").unwrap(),
+                6,
+                String::from_str("0x00000000450b6a50952ac24a14d9f76f3ace3589d834f43f").unwrap(),
+            ),
+            (
+                String::from_str("0x0000000644192702d2623c11c05c3196ee6490c8f4927ce5").unwrap(),
+                4,
+                String::from_str("0x000000024cacd7866a2f9d4925076fbffd9aacf1c84c3337").unwrap(),
+            ),
+        ];
         for (u_hex_string, r, u_exp_hex_string) in test_data {
             let (u, u_exp_expected) = (
                 Fq::from_hex_string(&u_hex_string),
                 Fq::from_hex_string(&u_exp_hex_string),
             );
-            let u_exp = u.modular_composition(r);
+            assert!((1 << r) < M, "Input parameter r is too big!");
+            // g[X] = X^{2^r}
+            let g = {
+                let mut v = Fq::one() << 1;
+                for _ in 1..(r + 1) {
+                    v = v.squaring();
+                }
+                v
+            };
+            let u_exp = u.modular_composition(g);
             assert_eq!(
                 u_exp, u_exp_expected,
                 "Test for Fq modular composition failed!"
             );
+        }
+    }
+
+    #[test]
+    fn test_exp() {
+        let test_data = [(
+            String::from_str("0x0000000644192702d2623c11c05c3196ee6490c8f4927ce5").unwrap(),
+            String::from_str("0x00000004ef895f49b9b91e352a6c05dd3136d6e5249dae50").unwrap(),
+            String::from_str("0x00000006da1d5965226836a80b556c2c98b9800ad80999e3").unwrap(),
+        )];
+        for (u_hex_string, v_hex_string, u_exp_hex_string) in test_data {
+            let (u, v, u_exp_expected) = (
+                Fq::from_hex_string(&u_hex_string),
+                BinaryPolynomial::<N>::from_hex_string(&v_hex_string),
+                Fq::from_hex_string(&u_exp_hex_string),
+            );
+            let u_exp = u.exp(v);
+            assert_eq!(u_exp, u_exp_expected, "Test for Fq exp failed!");
         }
     }
 }
