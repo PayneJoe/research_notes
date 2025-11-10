@@ -1,48 +1,15 @@
+#![allow(dead_code)]
+use super::BinaryWord;
+use super::word::*;
 use hex;
 use std::fmt::Debug;
 use std::ops::{Add, Mul, Neg, Shl, Shr, Sub};
 
 // u8 word only for testing purpose, actually we will use u32 or u64 as one word
-pub type WORD = u8;
-pub const WORD_SIZE: usize = 8;
-// pub type WORD = u32;
-// pub const WORD_SIZE: usize = 32;
+pub type WORD = WORD32;
+pub const WORD_SIZE: usize = 32;
 // window size for caching when doing bigint multiplication
 pub const WINDOW_SIZE: usize = 4;
-
-#[allow(dead_code)]
-pub trait Binary: Sized {
-    fn squaring(&self) -> [Self; 2];
-    fn to_be_bits(&self) -> Vec<u8>;
-}
-
-impl Binary for u8 {
-    fn to_be_bits(&self) -> Vec<u8> {
-        (0..8)
-            .map(|i| if (self >> i) & 1 == 1 { 1u8 } else { 0u8 })
-            .collect::<Vec<_>>()
-    }
-
-    // squaring a byte would blow up two times of its capacity
-    fn squaring(&self) -> [Self; 2] {
-        let mut result = [0 as u8; 2];
-        // byte to bits
-        let byte_bits = (0..8).map(|i| (self >> i) & 1 == 1).collect::<Vec<bool>>();
-        // insert zeros in lower byte
-        for i in 0..4 {
-            if byte_bits[i] {
-                result[0] += 1 << (2 * i);
-            }
-        }
-        // insert zeros in higher word
-        for i in 0..4 {
-            if byte_bits[4 + i] {
-                result[1] += 1 << (2 * i);
-            }
-        }
-        result
-    }
-}
 
 // binary polynomial representation for bigint
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -70,7 +37,7 @@ impl<const N: usize> BinaryPolynomial<N> {
     // to bit vec with big ending order
     pub fn to_be_bits(&self) -> Vec<u8> {
         self.0
-            .map(|w| w.to_be_bytes().map(|b| b.to_be_bits()).concat())
+            .map(|w| w.to_le_bytes().map(|b| b.to_be_bits()).concat())
             .concat()
     }
 
@@ -131,41 +98,31 @@ impl<const N: usize> BinaryPolynomial<N> {
         self.set_bit(word_offset, bit_offset, bit);
     }
 
-    pub fn at(&self, index: usize) -> Option<&WORD> {
-        if index < N {
-            Some(&self.0[index])
-        } else {
-            None
-        }
-    }
-
-    // to little ending hex bytes string
+    // to hex bytes string
     pub fn to_hex_string(&self) -> String {
         let bytes = self
             .0
             .iter()
-            .map(|w| w.to_le_bytes())
+            .map(|w| hex::encode(w.to_be_bytes()))
             .rev()
             .collect::<Vec<_>>()
             .concat();
-        format!("0x{}", hex::encode(&bytes))
+        format!("0x{}", bytes)
     }
 
     // from little ending hex bytes string
     pub fn from_hex_string(s: &String) -> Self {
         assert!(s.starts_with("0x"));
-        let mut s_trimed = s.strip_prefix("0x").unwrap().to_string();
-        if s_trimed.len() % 2 == 1 {
-            s_trimed = format!("0{}", s_trimed);
-        }
-        let bytes = hex::decode(s_trimed)
+
+        let bytes = hex::decode(s.chars().skip(2).collect::<String>())
             .expect("Invalid hex string")
             .into_iter()
-            .rev()
             .collect::<Vec<_>>();
+
         let words = bytes
             .chunks(WORD_SIZE / 8)
             .map(|v| WORD::from_be_bytes(v.try_into().unwrap()))
+            .rev()
             .collect::<Vec<_>>();
         Self::from(words)
     }
@@ -173,14 +130,9 @@ impl<const N: usize> BinaryPolynomial<N> {
     // to little ending bit string
     pub fn to_bit_string(&self) -> String {
         let bit_string = self
-            .0
+            .to_be_bits()
             .iter()
-            .map(|w| {
-                w.to_le_bytes()
-                    .iter()
-                    .map(|b| format!("{:08b}", b).chars().collect::<String>())
-                    .collect::<String>()
-            })
+            .map(|b| if *b == 1u8 { '1' } else { '0' })
             .rev()
             .collect::<String>();
         format!("0b{}", bit_string.trim_start_matches("0"))
@@ -269,7 +221,7 @@ impl<const N: usize> BinaryPolynomial<N> {
         // insert zeros by byte
         for i in 0..N {
             // multiple bytes in a word
-            let word_bytes = self.0[i].to_be_bytes();
+            let word_bytes = self.0[i].to_le_bytes();
             for byte in word_bytes {
                 let byte_squaring = lookup_table[byte as usize];
                 result.push(byte_squaring[0]);
@@ -278,7 +230,7 @@ impl<const N: usize> BinaryPolynomial<N> {
         }
         let words = result
             .chunks(WORD_SIZE / 8)
-            .map(|v| WORD::from_be_bytes(v.try_into().unwrap()))
+            .map(|v| WORD::from_le_bytes(v.try_into().unwrap()))
             .collect::<Vec<_>>();
         BinaryPolynomial2([
             Self::from(words[..N].to_vec()),
@@ -641,16 +593,20 @@ pub trait BinaryField<const N: usize>:
 mod tests {
     use super::*;
     use std::str::FromStr;
+    const N: usize = 6;
 
     #[test]
     fn test_hex_string() {
         let test_data = [(
-            String::from_str("0x06f9").unwrap(),
-            BinaryPolynomial([249, 6, 0, 0]),
+            String::from_str("0x0000000644192702d2623c11c05c3196ee6490c8f4927ce5").unwrap(),
+            BinaryPolynomial([
+                4103240933, 3999568072, 3227267478, 3529653265, 1142499074, 6,
+            ]),
         )];
         for (v_hex_string, v_expected) in test_data {
-            let v = BinaryPolynomial::<4>::from_hex_string(&v_hex_string);
+            let v = BinaryPolynomial::<N>::from_hex_string(&v_hex_string);
             assert_eq!(v, v_expected);
+            assert_eq!(v.to_hex_string(), v_hex_string);
         }
     }
 
@@ -658,11 +614,14 @@ mod tests {
     #[test]
     fn test_bit_string() {
         let test_data = [(
-            String::from_str("0b11011111001").unwrap(),
-            BinaryPolynomial([249, 6, 0, 0]),
+            String::from_str("0b1100100010000011001001001110000001011010010011000100011110000010001110000000101110000110001100101101110111001100100100100001100100011110100100100100111110011100101")
+                .unwrap(),
+            BinaryPolynomial([
+                4103240933, 3999568072, 3227267478, 3529653265, 1142499074, 6,
+            ]),
         )];
         for (v_bit_string, v_expected) in test_data {
-            let v = BinaryPolynomial::<4>::from_bit_string(&v_bit_string);
+            let v = BinaryPolynomial::<N>::from_bit_string(&v_bit_string);
             assert_eq!(
                 v, v_expected,
                 "Test for BinaryPolynomial::from_bit_string failed!"
@@ -675,45 +634,14 @@ mod tests {
         }
     }
 
-    // Example 11.36 in "Handbook of Elliptic and HyperElliptic Curve Cryptography"
-    // u(X) = X^5 + X^4 + X^2 + X, v(X) = X^10 + X^9 + X^7 + X^6 + X^5 + X^4 + X^3 + 1
-    // w(X) = u(X) * v(X) = X^15 + X^13 + X^10 + X^9 + X^7 + X^5 + X^2 + X
     #[test]
-    fn test_bigint_mul() {
+    fn test_binary_polynomial_mul() {
         let test_data = vec![(
-            String::from_str("0b110110").unwrap(),
-            String::from_str("0b11011111001").unwrap(),
+            String::from_str("0xee6490c8f4927ce5").unwrap(),
+            String::from_str("0xd2623c11c05c3196").unwrap(),
             (
-                String::from_str("0b1010011010100110").unwrap(),
-                String::from_str("0b").unwrap(),
-            ),
-        )];
-        for (u_bit_string, v_bit_string, (w_low_bit_string, w_high_bit_string)) in test_data {
-            let (u, v, w_expected) = (
-                BinaryPolynomial::<4>::from_bit_string(&u_bit_string),
-                BinaryPolynomial::<4>::from_bit_string(&v_bit_string),
-                BinaryPolynomial2([
-                    BinaryPolynomial::<4>::from_bit_string(&w_low_bit_string),
-                    BinaryPolynomial::<4>::from_bit_string(&w_high_bit_string),
-                ]),
-            );
-            let w = u * v;
-            assert_eq!(w, w_expected, "Test for BinaryPolynomial::mul failed!");
-            assert!(
-                (w.0[0].to_bit_string() == w_low_bit_string)
-                    && (w.0[1].to_bit_string() == w_high_bit_string)
-            );
-        }
-    }
-
-    #[test]
-    fn test_bigint_mul2() {
-        let test_data = vec![(
-            String::from_str("0x0074").unwrap(),
-            String::from_str("0x06f9").unwrap(),
-            (
-                String::from_str("0x1514").unwrap(),
-                String::from_str("0x0001").unwrap(),
+                String::from_str("0xbbbd17f4e2f6a38e").unwrap(),
+                String::from_str("0x43b672ea7a185e50").unwrap(),
             ),
         )];
         for (u_hex_string, v_hex_string, (w_low_hex_string, w_high_hex_string)) in test_data {
@@ -744,29 +672,29 @@ mod tests {
 
     // squaring over a bigint
     #[test]
-    fn test_bigint_squaring() {
+    fn test_binary_polynomial_squaring() {
         let test_data = [
             (
-                String::from_str("0b11011111001").unwrap(),
+                String::from_str("0xee6490c8f4927ce5").unwrap(),
                 [
-                    String::from_str("0b0101010101000001").unwrap(),
-                    String::from_str("0b0000000000010100").unwrap(),
+                    String::from_str("0x5510410415505411").unwrap(),
+                    String::from_str("0x5454141041005040").unwrap(),
                 ],
             ),
             (
-                String::from_str("0b1010010011111001").unwrap(),
+                String::from_str("0xd2623c11c05c3196").unwrap(),
                 [
-                    String::from_str("0b0101010101000001").unwrap(),
-                    String::from_str("0b0100010000010000").unwrap(),
+                    String::from_str("0x5000115005014114").unwrap(),
+                    String::from_str("0x5104140405500101").unwrap(),
                 ],
             ),
         ];
-        for (v_bit_string, v_squaring_bit_string) in test_data {
+        for (v_hex_string, v_squaring_hex_string) in test_data {
             let (v, v_squaring_expected) = (
-                BinaryPolynomial::<2>::from_bit_string(&v_bit_string),
+                BinaryPolynomial::<2>::from_hex_string(&v_hex_string),
                 BinaryPolynomial2([
-                    BinaryPolynomial::<2>::from_bit_string(&v_squaring_bit_string[0]),
-                    BinaryPolynomial::<2>::from_bit_string(&v_squaring_bit_string[1]),
+                    BinaryPolynomial::<2>::from_hex_string(&v_squaring_hex_string[0]),
+                    BinaryPolynomial::<2>::from_hex_string(&v_squaring_hex_string[1]),
                 ]),
             );
             let v_squaring = v.squaring();

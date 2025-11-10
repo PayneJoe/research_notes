@@ -6,7 +6,8 @@ use core::ops::{Add, Div, Mul, Neg, Shl, Shr, Sub};
 // binary field Fq = GF(2^m) / f(X), where m = 163 and f(X) = X^163 + X^7 + X^6 + X^3 + 1
 // N = 24 when word = u8
 pub const M: usize = 163;
-pub const N: usize = 24;
+// pub const N: usize = 24;
+pub const N: usize = 6;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Fq(BinaryPolynomial<N>);
@@ -300,48 +301,50 @@ impl Sub<Self> for Fq {
 impl BinaryField<N> for Fq {
     const M: usize = M;
     // f(X) = X^163 + r(X)
-    const F: BinaryPolynomial<N> = BinaryPolynomial([
-        201, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0,
-    ]);
+    const F: BinaryPolynomial<N> = BinaryPolynomial([201, 0, 0, 0, 0, 0]);
     // r(X) = X^7 + X^6 + X^3 + 1
-    const R: BinaryPolynomial<N> = BinaryPolynomial([
-        201, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    ]);
+    const R: BinaryPolynomial<N> = BinaryPolynomial([201, 0, 0, 0, 0, 0]);
     // uk = r(X), r(X) << 1, r(X) << 2, ..., r(X) << WORD_SIZE
     const UK: [BinaryPolynomial<N>; WORD_SIZE] = [
-        BinaryPolynomial([
-            201, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        ]),
-        BinaryPolynomial([
-            146, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        ]),
-        BinaryPolynomial([
-            36, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        ]),
-        BinaryPolynomial([
-            72, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        ]),
-        BinaryPolynomial([
-            144, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        ]),
-        BinaryPolynomial([
-            32, 25, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        ]),
-        BinaryPolynomial([
-            64, 50, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        ]),
-        BinaryPolynomial([
-            128, 100, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        ]),
+        BinaryPolynomial([201, 0, 0, 0, 0, 0]),
+        BinaryPolynomial([146, 1, 0, 0, 0, 0]),
+        BinaryPolynomial([36, 3, 0, 0, 0, 0]),
+        BinaryPolynomial([72, 6, 0, 0, 0, 0]),
+        BinaryPolynomial([144, 12, 0, 0, 0, 0]),
+        BinaryPolynomial([32, 25, 0, 0, 0, 0]),
+        BinaryPolynomial([64, 50, 0, 0, 0, 0]),
+        BinaryPolynomial([128, 100, 0, 0, 0, 0]),
+        BinaryPolynomial([128, 100, 0, 0, 0, 0]),
+        BinaryPolynomial([128, 100, 0, 0, 0, 0]),
+        BinaryPolynomial([128, 100, 0, 0, 0, 0]),
+        BinaryPolynomial([128, 100, 0, 0, 0, 0]),
+        BinaryPolynomial([128, 100, 0, 0, 0, 0]),
+        BinaryPolynomial([128, 100, 0, 0, 0, 0]),
+        BinaryPolynomial([128, 100, 0, 0, 0, 0]),
+        BinaryPolynomial([128, 100, 0, 0, 0, 0]),
+        BinaryPolynomial([128, 100, 0, 0, 0, 0]),
+        BinaryPolynomial([128, 100, 0, 0, 0, 0]),
+        BinaryPolynomial([128, 100, 0, 0, 0, 0]),
+        BinaryPolynomial([128, 100, 0, 0, 0, 0]),
+        BinaryPolynomial([128, 100, 0, 0, 0, 0]),
+        BinaryPolynomial([128, 100, 0, 0, 0, 0]),
+        BinaryPolynomial([128, 100, 0, 0, 0, 0]),
+        BinaryPolynomial([128, 100, 0, 0, 0, 0]),
+        BinaryPolynomial([128, 100, 0, 0, 0, 0]),
+        BinaryPolynomial([128, 100, 0, 0, 0, 0]),
+        BinaryPolynomial([128, 100, 0, 0, 0, 0]),
+        BinaryPolynomial([128, 100, 0, 0, 0, 0]),
+        BinaryPolynomial([128, 100, 0, 0, 0, 0]),
+        BinaryPolynomial([128, 100, 0, 0, 0, 0]),
+        BinaryPolynomial([128, 100, 0, 0, 0, 0]),
+        BinaryPolynomial([128, 100, 0, 0, 0, 0]),
     ];
     // \sqrt(X)
-    const SQ: BinaryPolynomial<N> = BinaryPolynomial([
-        176, 182, 109, 219, 182, 109, 219, 182, 109, 219, 146, 36, 73, 146, 36, 73, 146, 36, 73,
-        146, 4, 0, 0, 0,
-    ]);
     // const SQ: BinaryPolynomial<N> = BinaryPolynomial([
-    //     16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    //     176, 182, 109, 219, 182, 109, 219, 182, 109, 219, 146, 36, 73, 146, 36, 73, 146, 36, 73,
+    //     146, 4, 0, 0, 0,
     // ]);
+    const SQ: BinaryPolynomial<N> = BinaryPolynomial([0, 0, 0, 0, 0, 0]);
 
     // Algorithm 2.40 in "Guide to Elliptic Curve Cryptography"
     fn reduce(ele: BinaryPolynomial2<N>) -> Self {
