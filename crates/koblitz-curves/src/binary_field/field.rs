@@ -13,10 +13,12 @@ pub struct Fq(BinaryPolynomial<N>);
 
 #[allow(dead_code, non_snake_case)]
 impl Fq {
+    // convert to hex string
     pub fn to_hex_string(&self) -> String {
         self.0.to_hex_string()
     }
 
+    // initiate from hex string
     pub fn from_hex_string(s: &String) -> Self {
         assert!(s.starts_with("0x"));
         let hex_string = s.strip_prefix("0x").unwrap().to_string();
@@ -51,6 +53,7 @@ impl Fq {
         self.0.get(offset)
     }
 
+    // set bit value of binary field
     pub fn set(&mut self, offset: usize, bit: u8) {
         assert!(offset < M, "offset is too big!");
         self.0.set(offset, bit);
@@ -106,7 +109,8 @@ impl Fq {
         R
     }
 
-    // Shoup exponentiation algorithm for binary field
+    // Shoup exponentiation algorithm for binary field, algorithm 11.53 in "Handbook of Elliptic and HyperElliptic Curve Cryptography"
+    // compute f(X)^{n(X)} (mod m(X)) = f(X)^{n_0(X) + n_1(X) * t(X) + n_2(X) * t(X)^2 + ... + n_{l - 1}(X) * t(X)^{l - 1}}
     pub fn exp(&self, e: BinaryPolynomial<N>) -> Self {
         assert!(e.degree() < M, "Input parameter n is too big!");
         let r = (M as f64 / (M as f64).log2()).ceil() as usize;
