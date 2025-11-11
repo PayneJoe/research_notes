@@ -7,7 +7,8 @@ use core::ops::{Add, Neg, Sub};
 use std::fmt::Debug;
 use std::marker::PhantomData;
 
-// General projective coordinates
+// General projective coordinates which is not relevant with the short Weierstrass equation
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub struct Point<const N: usize, Field: BinaryField<N>, Curve: BinaryCurve<N, Field>> {
     x: Field,
     y: Field,
@@ -19,6 +20,10 @@ impl<const N: usize, Field: BinaryField<N>, Curve: BinaryCurve<N, Field>> Point<
     fn is_affine(&self) -> bool {
         self.z.is_one()
     }
+
+    fn is_identity(&self) -> bool {
+        Curve::is_identity(self)
+    }
 }
 
 impl<const N: usize, Field: BinaryField<N>, Curve: BinaryCurve<N, Field>> Add
@@ -27,6 +32,9 @@ impl<const N: usize, Field: BinaryField<N>, Curve: BinaryCurve<N, Field>> Add
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self {
+        if self == rhs {
+            return Curve::double(&self);
+        }
         Curve::add(&self, &rhs)
     }
 }
@@ -61,8 +69,22 @@ pub trait BinaryCurve<const N: usize, Field: BinaryField<N>>:
     const IDENTITY: Point<N, Field, Self>;
     const GENERATOR: Point<N, Field, Self>;
 
+    fn is_identity(p: &Point<N, Field, Self>) -> bool {
+        *p == Self::IDENTITY
+    }
+
     // Lopez-Dahab Coordinates based point addition
     fn add(lft: &Point<N, Field, Self>, rhs: &Point<N, Field, Self>) -> Point<N, Field, Self> {
+        if lft.is_identity() {
+            return *rhs;
+        }
+        if rhs.is_identity() {
+            return *lft;
+        }
+        if lft.neg() == *rhs {
+            return Self::IDENTITY;
+        }
+
         let ((X1, Y1, Z1), (X2, Y2, Z2)) = ((lft.x, lft.y, lft.z), (rhs.x, rhs.y, rhs.z));
         // mixed Coordinates
         if rhs.is_affine() {
@@ -99,6 +121,10 @@ pub trait BinaryCurve<const N: usize, Field: BinaryField<N>>:
 
     // Lopez-Dahab coordinates based point doubling
     fn double(lft: &Point<N, Field, Self>) -> Point<N, Field, Self> {
+        if lft.is_identity() {
+            return Self::IDENTITY;
+        }
+
         let (X1, Y1, Z1) = (lft.x, lft.y, lft.z);
         let A = Z1 * Z1;
         let (B, C) = (Self::A6 * (A * A), X1 * X1);
@@ -115,6 +141,9 @@ pub trait BinaryCurve<const N: usize, Field: BinaryField<N>>:
 
     // two solutions for y when x is fixed, i.e two points which are negative with each other
     fn neg(lft: &Point<N, Field, Self>) -> Point<N, Field, Self> {
+        if lft.is_identity() {
+            return Self::IDENTITY;
+        }
         Point {
             x: lft.x,
             y: lft.y + lft.x * lft.z,
