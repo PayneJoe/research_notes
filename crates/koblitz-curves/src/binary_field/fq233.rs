@@ -6,7 +6,7 @@ use core::ops::{Add, Div, Mul, Neg, Shl, Shr, Sub};
 
 // binary field Fq233 = GF(2^m) / f(X), where m = 233 and f(X) = X^233 + X^74 + 1
 // N = 8 when word = u32
-pub const M: usize = 163;
+pub const M: usize = 233;
 pub const N: usize = 8;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -307,6 +307,10 @@ impl BinaryField<N> for Fq233 {
 
     // Algorithm 2.42 in "Guide to Elliptic Curve Cryptography"
     fn reduce(ele: BinaryPolynomial2<N>) -> Self {
+        assert!(
+            ele.degree() <= 2 * M - 2,
+            "Degree of binary polynomial is too big."
+        );
         let mut C = ele.clone();
         for i in (N..2 * N).rev() {
             C[i - 8] = C[i - 8] ^ (C[i] << 23);
@@ -332,8 +336,10 @@ mod tests {
     #[test]
     fn test_fq_reduce() {
         let test_data = [(
-            String::from_str("0x00000003ba4d15e1e974d9279e5a5c527a157742b845827b").unwrap(),
-            String::from_str("0x00000003ba4d15e1e974d9279e5a5c527a157742b845827b").unwrap(),
+            String::from_str("0x000000000000000000000003ba4d15e1e974d9279e5a5c527a157742b845827b")
+                .unwrap(),
+            String::from_str("0x000000000000000000000003ba4d15e1e974d9279e5a5c527a157742b845827b")
+                .unwrap(),
         )];
         for (v_hex_string, v_reduced_hex_string) in test_data {
             let v = Fq233::from_hex_string(&v_hex_string);
@@ -346,18 +352,14 @@ mod tests {
         for i in 0..Fq233::UK.len() - 1 {
             assert_eq!(Fq233::UK[i] << 1, Fq233::UK[i + 1]);
         }
-        let test_data = [
-            (
-                String::from_str("0x00000003ba4d15e1e974d9279e5a5c527a157742b845827b").unwrap(),
-                String::from_str("0x000000001d4350a888ab13aacc54664d0f1f7ebb315f8039").unwrap(),
-                String::from_str("0x000000033b74e65b81aeadbe2bfc6968ed3c050d10363e8c").unwrap(),
-            ),
-            (
-                String::from_str("0x0000000644192702d2623c11c05c3196ee6490c8f4927ce5").unwrap(),
-                String::from_str("0x00000004ef895f49b9b91e352a6c05dd3136d6e5249dae50").unwrap(),
-                String::from_str("0x00000006b15a564aaf5e7df8d4424c03bc35bd7c2c61e17e").unwrap(),
-            ),
-        ];
+        let test_data = [(
+            String::from_str("0x0000003bd4f59063516f81a1621a4d4885e77e0f4693f893b656abe82c4e5c2f")
+                .unwrap(),
+            String::from_str("0x00000131fb97cdb584763a0dbfe94f6a78ec31d680ecf7c0df07dafb5b418b09")
+                .unwrap(),
+            String::from_str("0x000000296bc0bc0ead4ade9dfca37c3b5e5a1c622511d6b765347d7c2de7103d")
+                .unwrap(),
+        )];
         for (u_hex_string, v_hex_string, w_expected_hex_string) in test_data {
             let (u, v, w_expected) = (
                 Fq233::from_hex_string(&u_hex_string),
@@ -374,16 +376,34 @@ mod tests {
     fn test_fq_inv() {
         let test_data = [
             (
-                String::from_str("0x0000000644192702d2623c11c05c3196ee6490c8f4927ce5").unwrap(),
-                String::from_str("0x00000002fbca818f7ebbfb003b6318ff7c959ed1281782ea").unwrap(),
+                String::from_str(
+                    "0x0000003bd4f59063516f81a1621a4d4885e77e0f4693f893b656abe82c4e5c2f",
+                )
+                .unwrap(),
+                String::from_str(
+                    "0x000001ecfca5ace9b696238406aab3cf75090c2e7a4ae879be9f29bea5e704b6",
+                )
+                .unwrap(),
             ),
             (
-                String::from_str("0x00000004ef895f49b9b91e352a6c05dd3136d6e5249dae50").unwrap(),
-                String::from_str("0x000000031e49c95bfa16c6b85d5cd2c3abe1e2f071c68e92").unwrap(),
+                String::from_str(
+                    "0x00000131fb97cdb584763a0dbfe94f6a78ec31d680ecf7c0df07dafb5b418b09",
+                )
+                .unwrap(),
+                String::from_str(
+                    "0x0000001a8bf742ce2424dbaf0e9f0cb042100054afe65f14cff0610b2699da90",
+                )
+                .unwrap(),
             ),
             (
-                String::from_str("0x00000006b15a564aaf5e7df8d4424c03bc35bd7c2c61e17e").unwrap(),
-                String::from_str("0x00000000c9b5d404e46e8e8db628198f32a1f3f8972dab36").unwrap(),
+                String::from_str(
+                    "0x000000296bc0bc0ead4ade9dfca37c3b5e5a1c622511d6b765347d7c2de7103d",
+                )
+                .unwrap(),
+                String::from_str(
+                    "0x00000160aea7fd976ac242795c52166c71349481dd997e89eaa182f9294dc4b6",
+                )
+                .unwrap(),
             ),
         ];
 
@@ -401,14 +421,26 @@ mod tests {
     fn test_modular_composition() {
         let test_data = [
             (
-                String::from_str("0x0000000644192702d2623c11c05c3196ee6490c8f4927ce5").unwrap(),
+                String::from_str(
+                    "0x000000f2b074776e507205cd40b5eb706c989deef9b76912c7e23b9bbad84433",
+                )
+                .unwrap(),
                 6,
-                String::from_str("0x00000000450b6a50952ac24a14d9f76f3ace3589d834f43f").unwrap(),
+                String::from_str(
+                    "0x00000030ad418b174faeb0a6007c045c548d6d11eb99dac929cf3d4d100e1755",
+                )
+                .unwrap(),
             ),
             (
-                String::from_str("0x0000000644192702d2623c11c05c3196ee6490c8f4927ce5").unwrap(),
+                String::from_str(
+                    "0x000000f2b074776e507205cd40b5eb706c989deef9b76912c7e23b9bbad84433",
+                )
+                .unwrap(),
                 4,
-                String::from_str("0x000000024cacd7866a2f9d4925076fbffd9aacf1c84c3337").unwrap(),
+                String::from_str(
+                    "0x0000010b0bc4030227274e9903596a15192d17d81aa579be95df4e26d9365849",
+                )
+                .unwrap(),
             ),
         ];
         for (u_hex_string, r, u_exp_hex_string) in test_data {
@@ -437,14 +469,32 @@ mod tests {
     fn test_exp() {
         let test_data = [
             (
-                String::from_str("0x0000000644192702d2623c11c05c3196ee6490c8f4927ce5").unwrap(),
-                String::from_str("0x00000004ef895f49b9b91e352a6c05dd3136d6e5249dae50").unwrap(),
-                String::from_str("0x00000006da1d5965226836a80b556c2c98b9800ad80999e3").unwrap(),
+                String::from_str(
+                    "0x000000f2b074776e507205cd40b5eb706c989deef9b76912c7e23b9bbad84433",
+                )
+                .unwrap(),
+                String::from_str(
+                    "0x000000dbd55057dd12413fb25a6d4189b1109905a55dca6038eed1ffce235d34",
+                )
+                .unwrap(),
+                String::from_str(
+                    "0x000000754e2c4a1912c4fecfdba7184369a36b68e29315b6a9962fa652c9eb8e",
+                )
+                .unwrap(),
             ),
             (
-                String::from_str("0x0000000644192702d2623c11c05c3196ee6490c8f4927ce5").unwrap(),
-                String::from_str("0x00000006b15a564aaf5e7df8d4424c03bc35bd7c2c61e17e").unwrap(),
-                String::from_str("0x00000005fab6120618128021ab4a0b400b96c5663e337292").unwrap(),
+                String::from_str(
+                    "0x000000f2b074776e507205cd40b5eb706c989deef9b76912c7e23b9bbad84433",
+                )
+                .unwrap(),
+                String::from_str(
+                    "0x0000012ececad8c345361185c03daba2e541a387e404843f6f9bca5f873a7062",
+                )
+                .unwrap(),
+                String::from_str(
+                    "0x00000178d21000676c8880a65f727dd70afae1523c402cee849e36eb51a20fa4",
+                )
+                .unwrap(),
             ),
         ];
         for (u_hex_string, v_hex_string, u_exp_hex_string) in test_data {
@@ -462,12 +512,24 @@ mod tests {
     fn test_sqrt() {
         let test_data = [
             (
-                String::from_str("0x0000000644192702d2623c11c05c3196ee6490c8f4927ce5").unwrap(),
-                String::from_str("0x00000005259bbd12010474deb2eb16c5813f8b430dec9dde").unwrap(),
+                String::from_str(
+                    "0x000000f2b074776e507205cd40b5eb706c989deef9b76912c7e23b9bbad84433",
+                )
+                .unwrap(),
+                String::from_str(
+                    "0x0000016b95f7e3f698f8ba15b833af7f40ac4efacc3b854b8f951062010a329a",
+                )
+                .unwrap(),
             ),
             (
-                String::from_str("0x00000004ef895f49b9b91e352a6c05dd3136d6e5249dae50").unwrap(),
-                String::from_str("0x00000004e13ea374aedefd626875d43d7bc11f9a5e00eee8").unwrap(),
+                String::from_str(
+                    "0x000000dbd55057dd12413fb25a6d4189b1109905a55dca6038eed1ffce235d34",
+                )
+                .unwrap(),
+                String::from_str(
+                    "0x000000b21f87563e10e62accc68df1f6a48dfcff4974caf56b5d93e36b27d495",
+                )
+                .unwrap(),
             ),
         ];
         assert_eq!(
@@ -475,13 +537,13 @@ mod tests {
             Fq233::one() << 1,
             "Square root of X is not correct!"
         );
-        // for (u_hex_string, u_sqrt_hex_string) in test_data {
-        //     let (u, u_sqrt_expected) = (
-        //         Fq233::from_hex_string(&u_hex_string),
-        //         Fq233::from_hex_string(&u_sqrt_hex_string),
-        //     );
-        //     let u_sqrt = u.sqrt();
-        //     assert_eq!(u_sqrt, u_sqrt_expected, "Test for Fq233 sqrt failed!");
-        // }
+        for (u_hex_string, u_sqrt_hex_string) in test_data {
+            let (u, u_sqrt_expected) = (
+                Fq233::from_hex_string(&u_hex_string),
+                Fq233::from_hex_string(&u_sqrt_hex_string),
+            );
+            let u_sqrt = u.sqrt();
+            assert_eq!(u_sqrt, u_sqrt_expected, "Test for Fq233 sqrt failed!");
+        }
     }
 }
