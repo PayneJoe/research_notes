@@ -21,7 +21,7 @@ impl<const N: usize> BinaryPolynomial<N> {
     // split BinaryPolynimal2 into a even and odd BinaryPolynomial,
     // this is for the purpose of sqrt
     pub fn split(&self) -> [BinaryPolynomial<N>; 2] {
-        let bit_vec = self.to_be_bits();
+        let bit_vec = self.to_le_bits(false);
         let even = bit_vec.iter().step_by(2).map(|b| *b).collect::<Vec<_>>();
         let odd = bit_vec
             .iter()
@@ -30,16 +30,26 @@ impl<const N: usize> BinaryPolynomial<N> {
             .map(|b| *b)
             .collect::<Vec<_>>();
         [
-            BinaryPolynomial::from_be_bits(even),
-            BinaryPolynomial::from_be_bits(odd),
+            BinaryPolynomial::from_le_bits(even),
+            BinaryPolynomial::from_le_bits(odd),
         ]
     }
 
-    // to bit vec with big ending order
-    pub fn to_be_bits(&self) -> Vec<u8> {
-        self.0
-            .map(|w| w.to_le_bytes().map(|b| b.to_be_bits()).concat())
-            .concat()
+    // to bit vec with little ending order
+    pub fn to_le_bits(&self, remove: bool) -> Vec<u8> {
+        let bit_vec = self
+            .0
+            .map(|w| w.to_le_bytes().map(|b| b.to_le_bits()).concat())
+            .concat();
+        if remove {
+            let mut i = bit_vec.len() - 1;
+            while bit_vec[i] == 0u8 {
+                i -= 1;
+            }
+            bit_vec[..(i + 1)].to_vec()
+        } else {
+            bit_vec
+        }
     }
 
     // chunk a binary polynomial with a specific size
@@ -99,7 +109,7 @@ impl<const N: usize> BinaryPolynomial<N> {
         self.set_bit(word_offset, bit_offset, bit);
     }
 
-    // to hex bytes string
+    // to hex bytes string with big ending
     pub fn to_hex_string(&self) -> String {
         let bytes = self
             .0
@@ -111,36 +121,47 @@ impl<const N: usize> BinaryPolynomial<N> {
         format!("0x{}", bytes)
     }
 
-    // from little ending hex bytes string
+    // from big ending hex bytes string
     pub fn from_hex_string(s: &String) -> Self {
         assert!(s.starts_with("0x"));
+        let chunk_size = WORD_SIZE / 8;
 
+        // convert to little ending bytes
         let bytes = hex::decode(s.chars().skip(2).collect::<String>())
             .expect("Invalid hex string")
             .into_iter()
+            .rev()
             .collect::<Vec<_>>();
 
+        // parse words one by one
         let words = bytes
-            .chunks(WORD_SIZE / 8)
-            .map(|v| WORD::from_be_bytes(v.try_into().unwrap()))
-            .rev()
+            .chunks(chunk_size)
+            .map(|v| {
+                let mut tmp = vec![0u8; chunk_size];
+                if v.len() < chunk_size {
+                    tmp[..v.len()].copy_from_slice(v);
+                } else {
+                    tmp[..].copy_from_slice(&v[..chunk_size]);
+                }
+                WORD::from_le_bytes(tmp.try_into().unwrap())
+            })
             .collect::<Vec<_>>();
         Self::from(words)
     }
 
     // to little ending bit string
-    pub fn to_bit_string(&self) -> String {
+    pub fn to_bit_string(&self, remove: bool) -> String {
         let bit_string = self
-            .to_be_bits()
+            .to_le_bits(remove)
             .iter()
             .map(|b| if *b == 1u8 { '1' } else { '0' })
             .rev()
             .collect::<String>();
-        format!("0b{}", bit_string.trim_start_matches("0"))
+        format!("0b{}", bit_string)
     }
 
     // from bit vec with big ending
-    pub fn from_be_bits(bit_vec: Vec<u8>) -> Self {
+    pub fn from_le_bits(bit_vec: Vec<u8>) -> Self {
         let n = bit_vec.len();
         assert!(n <= N * WORD_SIZE);
         if n == 0 {
@@ -162,7 +183,7 @@ impl<const N: usize> BinaryPolynomial<N> {
         result
     }
 
-    // from bit string with little ending
+    // from bit string with big ending
     pub fn from_bit_string(s: &String) -> Self {
         assert!(s.starts_with("0b"));
         let bit_vec = s
@@ -171,7 +192,7 @@ impl<const N: usize> BinaryPolynomial<N> {
             .into_iter()
             .map(|c| if c == '1' { 1u8 } else { 0u8 })
             .collect::<Vec<_>>();
-        Self::from_be_bits(bit_vec.into_iter().rev().collect::<Vec<_>>())
+        Self::from_le_bits(bit_vec.into_iter().rev().collect::<Vec<_>>())
     }
 
     // the degree of binary polynomial
@@ -637,7 +658,7 @@ mod tests {
                 "Test for BinaryPolynomial::from_bit_string failed!"
             );
             assert_eq!(
-                v.to_bit_string(),
+                v.to_bit_string(true),
                 v_bit_string,
                 "Test for BinaryPolynomial::to_bit_string failed!"
             );

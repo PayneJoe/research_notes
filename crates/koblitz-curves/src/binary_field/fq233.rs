@@ -329,13 +329,16 @@ impl BinaryField<N> for Fq233 {
 
         Self(C.lower())
     }
-
+    // trivial checks
     fn is_zero(&self) -> bool {
         *self == Self::zero()
     }
-
     fn is_one(&self) -> bool {
         *self == Self::one()
+    }
+    // convert to little ending bits and remove leading zeros if necessary
+    fn bits(&self, remove: bool) -> Vec<u8> {
+        self.0.to_le_bits(remove)
     }
 }
 

@@ -29,13 +29,15 @@ pub trait BinaryField<const N: usize>:
     const UK: [BinaryPolynomial<N>; WORD_SIZE];
     // sqrt(X) = X^{(M + 1) / 2} + X^((k + 1) / 2) when irreducible polynomial m(X) is a trinomial X^M + x^k + 1 and k is a odd number
     const SQ: BinaryPolynomial<N>;
+    // reduce a big binary polynomial with a fixed irreducible binary polynomial with degree M
     fn reduce(element: BinaryPolynomial2<N>) -> Self;
     fn is_zero(&self) -> bool;
     fn is_one(&self) -> bool;
+    fn bits(&self, remove: bool) -> Vec<u8>;
 }
 
 #[allow(dead_code)]
 pub trait BinaryWord: Sized {
     fn squaring(&self) -> [Self; 2];
-    fn to_be_bits(&self) -> Vec<u8>;
+    fn to_le_bits(&self) -> Vec<u8>;
 }

@@ -3,7 +3,7 @@
 pub mod k233;
 
 use crate::binary_field::BinaryField;
-use core::ops::{Add, Neg, Sub};
+use core::ops::{Add, Mul, Neg, Sub};
 use std::fmt::Debug;
 use std::marker::PhantomData;
 
@@ -23,6 +23,16 @@ impl<const N: usize, Field: BinaryField<N>, Curve: BinaryCurve<N, Field>> Point<
 
     fn is_identity(&self) -> bool {
         Curve::is_identity(self)
+    }
+}
+
+impl<const N: usize, Field: BinaryField<N>, Curve: BinaryCurve<N, Field>> Mul<Field>
+    for Point<N, Field, Curve>
+{
+    type Output = Self;
+
+    fn mul(self, scalar: Field) -> Self {
+        Curve::montgomery_scalar_mul(&self, scalar)
     }
 }
 
@@ -69,12 +79,20 @@ pub trait BinaryCurve<const N: usize, Field: BinaryField<N>>:
     const IDENTITY: Point<N, Field, Self>;
     const GENERATOR: Point<N, Field, Self>;
 
+    // Regarding Lopez-Dahab projective coordinates, the Weierstrass equation is: Y^2 + X * Y * Z = X^3 * Z + a_2 * X^2 * Z^2 + a_6 * Z^4
+    fn is_on_curve(p: &Point<N, Field, Self>) -> bool {
+        let (X, Y, Z) = (p.x, p.y, p.z);
+        let (X2, Y2, Z2, XZ) = (X * X, Y * Y, Z * Z, X * Z);
+        Y2 + Y * XZ == X2 * XZ + Self::A2 * X2 * Z2 + Self::A6 * (Z2 * Z2)
+    }
+
     fn is_identity(p: &Point<N, Field, Self>) -> bool {
         *p == Self::IDENTITY
     }
 
     // Lopez-Dahab Coordinates based point addition
     fn add(lft: &Point<N, Field, Self>, rhs: &Point<N, Field, Self>) -> Point<N, Field, Self> {
+        // trivial checks at the very first
         if lft.is_identity() {
             return *rhs;
         }
@@ -84,7 +102,6 @@ pub trait BinaryCurve<const N: usize, Field: BinaryField<N>>:
         if lft.neg() == *rhs {
             return Self::IDENTITY;
         }
-
         let ((X1, Y1, Z1), (X2, Y2, Z2)) = ((lft.x, lft.y, lft.z), (rhs.x, rhs.y, rhs.z));
         // mixed Coordinates
         if rhs.is_affine() {
@@ -124,7 +141,6 @@ pub trait BinaryCurve<const N: usize, Field: BinaryField<N>>:
         if lft.is_identity() {
             return Self::IDENTITY;
         }
-
         let (X1, Y1, Z1) = (lft.x, lft.y, lft.z);
         let A = Z1 * Z1;
         let (B, C) = (Self::A6 * (A * A), X1 * X1);
@@ -150,5 +166,34 @@ pub trait BinaryCurve<const N: usize, Field: BinaryField<N>>:
             z: lft.z,
             marker: PhantomData::<Self>,
         }
+    }
+
+    // Montgomery scalar multiplication for binary point
+    fn montgomery_scalar_mul(p: &Point<N, Field, Self>, scalar: Field) -> Point<N, Field, Self> {
+        // trivial checks at the very first
+        if scalar.is_zero() {
+            return Self::IDENTITY;
+        }
+        if scalar.is_one() {
+            return *p;
+        }
+        if p.is_identity() {
+            return Self::IDENTITY;
+        }
+        // binary representation of scalar field
+        let n = scalar.bits(true);
+        let l = n.len();
+        let (mut P1, mut P2) = (p.clone(), *p + *p);
+        // using montgomery ladder
+        for i in (0..l - 1).rev() {
+            if n[i] == 0u8 {
+                P1 = P1 + P1;
+                P2 = P1 + P2;
+            } else {
+                P1 = P1 + P2;
+                P2 = P2 + P2;
+            }
+        }
+        P1
     }
 }
