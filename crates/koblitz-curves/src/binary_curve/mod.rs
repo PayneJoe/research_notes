@@ -97,6 +97,22 @@ pub trait BinaryCurve<const N: usize, Field: BinaryField<N>>:
         }
     }
 
+    // Lopez-Dahab coordinates based point doubling
+    fn double(lft: &Point<N, Field, Self>) -> Point<N, Field, Self> {
+        let (X1, Y1, Z1) = (lft.x, lft.y, lft.z);
+        let A = Z1 * Z1;
+        let (B, C) = (Self::A6 * (A * A), X1 * X1);
+        let Z3 = A * C;
+        let X3 = C * C + B;
+        let Y3 = (Y1 * Y1 + Self::A2 * Z3 + B) * X3 + Z3 * B;
+        Point {
+            x: X3,
+            y: Y3,
+            z: Z3,
+            marker: PhantomData::<Self>,
+        }
+    }
+
     // two solutions for y when x is fixed, i.e two points which are negative with each other
     fn neg(lft: &Point<N, Field, Self>) -> Point<N, Field, Self> {
         Point {
