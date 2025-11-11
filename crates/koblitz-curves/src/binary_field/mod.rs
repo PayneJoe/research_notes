@@ -33,7 +33,10 @@ pub trait BinaryField<const N: usize>:
     fn reduce(element: BinaryPolynomial2<N>) -> Self;
     fn is_zero(&self) -> bool;
     fn is_one(&self) -> bool;
+    fn is_power_of_2(&self) -> bool;
     fn bits(&self, remove: bool) -> Vec<u8>;
+    fn sqrt(&self) -> Self;
+    fn squaring(&self) -> Self;
 }
 
 #[allow(dead_code)]

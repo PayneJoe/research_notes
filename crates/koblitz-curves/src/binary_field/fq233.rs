@@ -10,7 +10,7 @@ pub const M: usize = 233;
 pub const N: usize = 8;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub struct Fq233(BinaryPolynomial<N>);
+pub struct Fq233(pub BinaryPolynomial<N>);
 
 #[allow(dead_code, non_snake_case)]
 impl Fq233 {
@@ -58,11 +58,6 @@ impl Fq233 {
     pub fn set(&mut self, offset: usize, bit: u8) {
         assert!(offset < M, "offset is too big!");
         self.0.set(offset, bit);
-    }
-
-    // squaring of binary field
-    pub fn squaring(&self) -> Self {
-        Self::reduce(self.0.squaring())
     }
 
     // swap two binary field
@@ -146,17 +141,13 @@ impl Fq233 {
         y
     }
 
-    // square root of binary field
-    // \sqrt(f(X)) = f_{even} + \sqrt(X) * f_{odd}, where \sqrt(X) is constant
-    pub fn sqrt(&self) -> Self {
-        let pair = self.0.split();
-        Fq233(pair[0]) + Self::reduce(pair[1] * Self::SQ)
-    }
-
     // Algorithm 2.48 in "Guide to Elliptic Curve Cryptography"
     // Euclidean based binary field inversion
     pub fn inv(&self) -> Self {
         assert!(*self != Self::zero(), "Zero can not be inversed!");
+        if self.is_one() {
+            return Self::one();
+        }
         let (mut u, mut v) = (
             BinaryPolynomial2::<N>::from(self.0),
             BinaryPolynomial2::<N>::from(Self::F),
@@ -336,9 +327,29 @@ impl BinaryField<N> for Fq233 {
     fn is_one(&self) -> bool {
         *self == Self::one()
     }
+    fn is_power_of_2(&self) -> bool {
+        let ones = self.bits(true).iter().fold(0, |acc, v| acc + v);
+        (ones == 1u8) || (ones == 0u8)
+    }
     // convert to little ending bits and remove leading zeros if necessary
     fn bits(&self, remove: bool) -> Vec<u8> {
         self.0.to_le_bits(remove)
+    }
+    // square root of binary field
+    // \sqrt(f(X)) = f_{even} + \sqrt(X) * f_{odd}, where \sqrt(X) is constant
+    fn sqrt(&self) -> Self {
+        let pair = self.0.split();
+        Self(pair[0]) + Self::reduce(pair[1] * Self::SQ)
+    }
+    // squaring of binary field
+    fn squaring(&self) -> Self {
+        if self.is_zero() {
+            return Self::zero();
+        }
+        if self.is_one() {
+            return Self::one();
+        }
+        Self::reduce(self.0.squaring())
     }
 }
 
