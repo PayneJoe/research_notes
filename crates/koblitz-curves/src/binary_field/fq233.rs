@@ -233,8 +233,11 @@ impl Mul for Fq233 {
         if rhs == Self::one() {
             return self;
         }
-
-        Self::reduce(self.0 * rhs.0)
+        if self == rhs {
+            self.squaring()
+        } else {
+            Self::reduce(self.0 * rhs.0)
+        }
     }
 }
 
@@ -325,6 +328,14 @@ impl BinaryField<N> for Fq233 {
         C[7] = C[7] & 0x1ff;
 
         Self(C.lower())
+    }
+
+    fn is_zero(&self) -> bool {
+        *self == Self::zero()
+    }
+
+    fn is_one(&self) -> bool {
+        *self == Self::one()
     }
 }
 

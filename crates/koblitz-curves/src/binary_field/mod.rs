@@ -30,6 +30,8 @@ pub trait BinaryField<const N: usize>:
     // sqrt(X) = X^{(M + 1) / 2} + X^((k + 1) / 2) when irreducible polynomial m(X) is a trinomial X^M + x^k + 1 and k is a odd number
     const SQ: BinaryPolynomial<N>;
     fn reduce(element: BinaryPolynomial2<N>) -> Self;
+    fn is_zero(&self) -> bool;
+    fn is_one(&self) -> bool;
 }
 
 #[allow(dead_code)]
