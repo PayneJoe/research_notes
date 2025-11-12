@@ -39,6 +39,7 @@ pub trait BinaryField<const N: usize>:
     fn bits(&self, remove: bool) -> Vec<u8>;
     fn sqrt(&self) -> Self;
     fn squaring(&self) -> Self;
+    fn trace(&self) -> Self;
 }
 
 #[allow(dead_code)]

@@ -343,6 +343,16 @@ impl BinaryField<N> for Fq233 {
         }
         Self::reduce(self.0.squaring())
     }
+    // trace of a binary field
+    fn trace(&self) -> Self {
+        let mut result = *self;
+        let mut sq = *self;
+        for _ in 1..Self::M {
+            sq = sq.squaring();
+            result = result + sq;
+        }
+        result
+    }
 
     fn zero() -> Self {
         Self(BinaryPolynomial::<N>::zero())
@@ -569,6 +579,19 @@ mod tests {
             );
             let u_sqrt = u.sqrt();
             assert_eq!(u_sqrt, u_sqrt_expected, "Test for Fq233 sqrt failed!");
+        }
+    }
+
+    #[test]
+    fn test_trace() {
+        let test_data = [String::from_str(
+            "0x0000013e1039b7c2ad6a0d92c83537b5704dfee0d8ac4243f3aa4e2a79bb7787",
+        )
+        .unwrap()];
+        for u_hex_string in test_data {
+            let u = Fq233::from_hex_string(&u_hex_string);
+            let w = u.trace();
+            assert_eq!(w, Fq233::zero(), "Test for trace of binary field failed!");
         }
     }
 }
