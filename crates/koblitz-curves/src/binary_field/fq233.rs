@@ -344,6 +344,7 @@ impl BinaryField<N> for Fq233 {
         Self::reduce(self.0.squaring())
     }
     // trace of a binary field
+    // Tr(x) = x + x^2 + x^{2^2} + x^{2^3} + ... + x^{2^{M - 1}}
     fn trace(&self) -> Self {
         let mut result = *self;
         let mut sq = *self;
