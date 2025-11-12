@@ -217,27 +217,31 @@ pub trait BinaryCurve<const N: usize, Field: BinaryField<N>>:
         // using montgomery ladder
         for i in (0..l - 1).rev() {
             if n[i] == 0u8 {
-                P1 = P1 + P1;
-                P2 = P1 + P2;
+                // P1 = P1 + P1, P2 = P1 + P2
+                (P1, P2) = (P1 + P1, P1 + P2);
             } else {
-                P1 = P1 + P2;
-                P2 = P2 + P2;
+                // P1 = P1 + P2, P2 = P2 + P2
+                (P1, P2) = (P1 + P2, P2 + P2);
             }
         }
         P1
     }
 
+    // Z_m+n = (XnZm)^2 + (XmZn)^2
+    // X_m+n = Z_m+n * X_m-n + (XnZm) * (Xm * Zn)
     fn mont_double(pn: &(Field, Field)) -> (Field, Field) {
         let (Xn, Zn) = (pn.0, pn.1);
         let (Xn_sq, Zn_sq) = (Xn.squaring(), Zn.squaring());
         ((Xn_sq + Self::A6_SQRT * Zn_sq).squaring(), Xn_sq * Zn_sq)
     }
 
+    // X_2n = (X_n^2 + \sqrt(a_6) * Z_n^2)^2
+    // Z_2n = X_n^2 * Z_n^2
     fn mont_add(pn: &(Field, Field), pm: &(Field, Field), X_m_minus_n: Field) -> (Field, Field) {
         let ((Xn, Zn), (Xm, Zm)) = ((pn.0, pn.1), (pm.0, pm.1));
         let (XmZn, XnZm) = (Xm * Zn, Xn * Zm);
-        let Z_m_plus_n = XmZn.squaring() + XnZm.squaring();
-        (Z_m_plus_n, Z_m_plus_n * X_m_minus_n + XmZn * XnZm)
+        let Z_m_plus_n = (XmZn + XnZm).squaring();
+        (Z_m_plus_n * X_m_minus_n + XmZn * XnZm, Z_m_plus_n)
     }
 
     // Fast Montgomery scalar multiplication specially for binary curve
@@ -265,18 +269,23 @@ pub trait BinaryCurve<const N: usize, Field: BinaryField<N>>:
         // using montgomery ladder
         for i in (0..l - 1).rev() {
             if n[i] == 0u8 {
-                // P1 = P1 + P1;
-                (Xn, Zn) = Self::mont_double(&(Xn, Zn));
-                // P2 = P1 + P2;
-                (Xm, Zm) = Self::mont_add(&(Xn, Zn), &(Xm, Zm), Xm_minus_n);
+                // P1 = P1 + P1, P2 = P1 + P2
+                ((Xn, Zn), (Xm, Zm)) = (
+                    Self::mont_double(&(Xn, Zn)),
+                    Self::mont_add(&(Xn, Zn), &(Xm, Zm), Xm_minus_n),
+                );
             } else {
-                // P1 = P1 + P2;
-                (Xn, Zn) = Self::mont_add(&(Xn, Zn), &(Xm, Zm), Xm_minus_n);
-                // P2 = P2 + P2;
-                (Xm, Zm) = Self::mont_double(&(Xm, Zm));
+                // P1 = P1 + P2, P2 = P2 + P2
+                ((Xn, Zn), (Xm, Zm)) = (
+                    Self::mont_add(&(Xn, Zn), &(Xm, Zm), Xm_minus_n),
+                    Self::mont_double(&(Xm, Zm)),
+                );
             }
         }
-        // restore Yn with formula (Xn + Xm_minus_n) * ((Xn + Xm_minus_n) * (Xm + Xm_minus_n) + Xm_minus_n^2 + Ym_minus_n) / Xm_minus_n + Ym_minus_n
+        // convert to affine coordinates
+        ((Xn, Zn), (Xm, _)) = ((Xn / Zn, Field::one()), (Xm / Zm, Field::one()));
+        // restore Yn with restored affine coordinates of [n]P and [m]P
+        // Y_n = (Xn + Xm_minus_n) * ((Xn + Xm_minus_n) * (Xm + Xm_minus_n) + Xm_minus_n^2 + Ym_minus_n) / Xm_minus_n + Ym_minus_n
         let Xn_Plus_Xm_minus_n = Xn + Xm_minus_n;
         let Yn = (Xn_Plus_Xm_minus_n
             * (Xn_Plus_Xm_minus_n * (Xm + Xm_minus_n) + Xm_minus_n.squaring() + Ym_minus_n))

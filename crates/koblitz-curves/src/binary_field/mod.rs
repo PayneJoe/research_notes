@@ -31,6 +31,8 @@ pub trait BinaryField<const N: usize>:
     const SQ: BinaryPolynomial<N>;
     // reduce a big binary polynomial with a fixed irreducible binary polynomial with degree M
     fn reduce(element: BinaryPolynomial2<N>) -> Self;
+    fn one() -> Self;
+    fn zero() -> Self;
     fn is_zero(&self) -> bool;
     fn is_one(&self) -> bool;
     fn is_power_of_2(&self) -> bool;

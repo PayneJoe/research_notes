@@ -185,15 +185,15 @@ mod tests {
                 )
                 .unwrap(),
             ),
-            String::from_str("0x0000000000000000000000000000000000000000000000000000000000000010")
+            String::from_str("0x0000000000000000000000000000000000000000000000000000000000000003")
                 .unwrap(),
             (
                 String::from_str(
-                    "0x000001742e9b39fd5a9360ef29d0da834ee160b84563575cfce8eb165cf06514",
+                    "0x0000018dd170c7fc91443bee679cc20b0ca53342abc20fb184fe8b6a25701fa5",
                 )
                 .unwrap(),
                 String::from_str(
-                    "0x00000008c5334dbda02d3e6053c9dcdc525789388dc237cea57e0707ce1fad09",
+                    "0x000000917e9e565076614ee7255f38650c3410cade1cad62c22a367700212d4b",
                 )
                 .unwrap(),
                 String::from_str(

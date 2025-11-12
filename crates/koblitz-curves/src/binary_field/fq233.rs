@@ -40,14 +40,6 @@ impl Fq233 {
         Self::reduce(result)
     }
 
-    pub fn zero() -> Self {
-        Self(BinaryPolynomial::<N>::zero())
-    }
-
-    pub fn one() -> Self {
-        Self(BinaryPolynomial::<N>::one())
-    }
-
     // get bit value of binary field
     pub fn get(&self, offset: usize) -> u8 {
         assert!(offset < M, "offset is too big!");
@@ -350,6 +342,14 @@ impl BinaryField<N> for Fq233 {
             return Self::one();
         }
         Self::reduce(self.0.squaring())
+    }
+
+    fn zero() -> Self {
+        Self(BinaryPolynomial::<N>::zero())
+    }
+
+    fn one() -> Self {
+        Self(BinaryPolynomial::<N>::one())
     }
 }
 
