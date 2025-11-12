@@ -1,8 +1,5 @@
 use super::{BinaryCurve, ProjectivePoint};
-use crate::binary_field::{
-    fq233::{Fq233, N},
-    polynomial::BinaryPolynomial,
-};
+use crate::binary_field::{N, fq233::Fq233, polynomial::BinaryPolynomial};
 use std::marker::PhantomData;
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]

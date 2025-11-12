@@ -1,7 +1,13 @@
 #![allow(dead_code)]
 pub mod fq233;
+pub mod fr233;
 pub mod polynomial;
 pub mod word;
+
+// binary field Fq233 = GF(2^m) / f(X), where m = 233 and f(X) = X^233 + X^74 + 1
+// N = 8 when word = u32
+pub const M: usize = 233;
+pub const N: usize = 8;
 
 use polynomial::{BinaryPolynomial, BinaryPolynomial2, WORD_SIZE};
 use std::fmt::Debug;
@@ -23,10 +29,6 @@ pub trait BinaryField<const N: usize>:
     // which M <= N * WORD_SIZE, and deg(R) < M
     const M: usize;
     const F: BinaryPolynomial<N>;
-    // degree(R(X)) = k which is a small odd number
-    const R: BinaryPolynomial<N>;
-    // uk = R(X), R(X) << 1, R(X) << 2, ..., R(X) << WORD_SIZE - 1
-    const UK: [BinaryPolynomial<N>; WORD_SIZE];
     // sqrt(X) = X^{(M + 1) / 2} + X^((k + 1) / 2) when irreducible polynomial m(X) is a trinomial X^M + x^k + 1 and k is a odd number
     const SQ: BinaryPolynomial<N>;
     // reduce a big binary polynomial with a fixed irreducible binary polynomial with degree M

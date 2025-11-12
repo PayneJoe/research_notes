@@ -1,13 +1,9 @@
 #![allow(non_snake_case)]
 
-use super::BinaryField;
+/// Base binary field for K-233 curve
+use super::{BinaryField, M, N};
 use crate::binary_field::polynomial::{BinaryPolynomial, BinaryPolynomial2, WORD_SIZE};
 use core::ops::{Add, Div, Mul, Neg, Shl, Shr, Sub};
-
-// binary field Fq233 = GF(2^m) / f(X), where m = 233 and f(X) = X^233 + X^74 + 1
-// N = 8 when word = u32
-pub const M: usize = 233;
-pub const N: usize = 8;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Fq233(pub BinaryPolynomial<N>);
@@ -248,45 +244,8 @@ impl Sub<Self> for Fq233 {
 
 impl BinaryField<N> for Fq233 {
     const M: usize = M;
-    // f(X) = X^233 + r(X)
+    // f(X) = X^233 + r(X), where r(X) = X^74 + 1
     const F: BinaryPolynomial<N> = BinaryPolynomial([1, 0, 1024, 0, 0, 0, 0, 512]);
-    // r(X) = X^74 + 1
-    const R: BinaryPolynomial<N> = BinaryPolynomial([1, 0, 1024, 0, 0, 0, 0, 0]);
-    // uk = r(X), r(X) << 1, r(X) << 2, ..., r(X) << WORD_SIZE
-    const UK: [BinaryPolynomial<N>; WORD_SIZE] = [
-        BinaryPolynomial([1, 0, 1024, 0, 0, 0, 0, 0]),
-        BinaryPolynomial([2, 0, 2048, 0, 0, 0, 0, 0]),
-        BinaryPolynomial([4, 0, 4096, 0, 0, 0, 0, 0]),
-        BinaryPolynomial([8, 0, 8192, 0, 0, 0, 0, 0]),
-        BinaryPolynomial([16, 0, 16384, 0, 0, 0, 0, 0]),
-        BinaryPolynomial([32, 0, 32768, 0, 0, 0, 0, 0]),
-        BinaryPolynomial([64, 0, 65536, 0, 0, 0, 0, 0]),
-        BinaryPolynomial([128, 0, 131072, 0, 0, 0, 0, 0]),
-        BinaryPolynomial([256, 0, 262144, 0, 0, 0, 0, 0]),
-        BinaryPolynomial([512, 0, 524288, 0, 0, 0, 0, 0]),
-        BinaryPolynomial([1024, 0, 1048576, 0, 0, 0, 0, 0]),
-        BinaryPolynomial([2048, 0, 2097152, 0, 0, 0, 0, 0]),
-        BinaryPolynomial([4096, 0, 4194304, 0, 0, 0, 0, 0]),
-        BinaryPolynomial([8192, 0, 8388608, 0, 0, 0, 0, 0]),
-        BinaryPolynomial([16384, 0, 16777216, 0, 0, 0, 0, 0]),
-        BinaryPolynomial([32768, 0, 33554432, 0, 0, 0, 0, 0]),
-        BinaryPolynomial([65536, 0, 67108864, 0, 0, 0, 0, 0]),
-        BinaryPolynomial([131072, 0, 134217728, 0, 0, 0, 0, 0]),
-        BinaryPolynomial([262144, 0, 268435456, 0, 0, 0, 0, 0]),
-        BinaryPolynomial([524288, 0, 536870912, 0, 0, 0, 0, 0]),
-        BinaryPolynomial([1048576, 0, 1073741824, 0, 0, 0, 0, 0]),
-        BinaryPolynomial([2097152, 0, 2147483648, 0, 0, 0, 0, 0]),
-        BinaryPolynomial([4194304, 0, 0, 1, 0, 0, 0, 0]),
-        BinaryPolynomial([8388608, 0, 0, 2, 0, 0, 0, 0]),
-        BinaryPolynomial([16777216, 0, 0, 4, 0, 0, 0, 0]),
-        BinaryPolynomial([33554432, 0, 0, 8, 0, 0, 0, 0]),
-        BinaryPolynomial([67108864, 0, 0, 16, 0, 0, 0, 0]),
-        BinaryPolynomial([134217728, 0, 0, 32, 0, 0, 0, 0]),
-        BinaryPolynomial([268435456, 0, 0, 64, 0, 0, 0, 0]),
-        BinaryPolynomial([536870912, 0, 0, 128, 0, 0, 0, 0]),
-        BinaryPolynomial([1073741824, 0, 0, 256, 0, 0, 0, 0]),
-        BinaryPolynomial([2147483648, 0, 0, 512, 0, 0, 0, 0]),
-    ];
     // \sqrt(X) = X^228 + X^191 + X^154 + X^117 + X^69 + X^32
     const SQ: BinaryPolynomial<N> =
         BinaryPolynomial([0, 1, 32, 2097152, 67108864, 2147483648, 0, 16]);
@@ -385,9 +344,6 @@ mod tests {
 
     #[test]
     fn test_fq_mul() {
-        for i in 0..Fq233::UK.len() - 1 {
-            assert_eq!(Fq233::UK[i] << 1, Fq233::UK[i + 1]);
-        }
         let test_data = [(
             String::from_str("0x0000003bd4f59063516f81a1621a4d4885e77e0f4693f893b656abe82c4e5c2f")
                 .unwrap(),
