@@ -1,6 +1,5 @@
 #![allow(dead_code)]
 pub mod fq233;
-pub mod fr233;
 pub mod polynomial;
 pub mod word;
 
