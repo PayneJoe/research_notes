@@ -170,38 +170,110 @@ mod tests {
 
     #[test]
     fn test_montgomery_scalar_mul() {
-        let test_data = [(
+        let test_data = [
             (
+                (
+                    String::from_str(
+                        "0x000000fb7946012d6ac80c95db7b19b14ac3afc74628b0eb7743acaa66da26ca",
+                    )
+                    .unwrap(),
+                    String::from_str(
+                        "0x000000d3e220f014c2033d071f054dfb8fbed70494eab7055dc832e7293b2a8b",
+                    )
+                    .unwrap(),
+                    String::from_str(
+                        "0x0000000000000000000000000000000000000000000000000000000000000001",
+                    )
+                    .unwrap(),
+                ),
                 String::from_str(
-                    "0x000000fb7946012d6ac80c95db7b19b14ac3afc74628b0eb7743acaa66da26ca",
+                    "0x0000000000000000000000000000000000000000000000000000000000000003",
                 )
                 .unwrap(),
-                String::from_str(
-                    "0x000000d3e220f014c2033d071f054dfb8fbed70494eab7055dc832e7293b2a8b",
-                )
-                .unwrap(),
-                String::from_str(
-                    "0x0000000000000000000000000000000000000000000000000000000000000001",
-                )
-                .unwrap(),
+                (
+                    String::from_str(
+                        "0x0000018dd170c7fc91443bee679cc20b0ca53342abc20fb184fe8b6a25701fa5",
+                    )
+                    .unwrap(),
+                    String::from_str(
+                        "0x000000917e9e565076614ee7255f38650c3410cade1cad62c22a367700212d4b",
+                    )
+                    .unwrap(),
+                    String::from_str(
+                        "0x0000000000000000000000000000000000000000000000000000000000000001",
+                    )
+                    .unwrap(),
+                ),
             ),
-            String::from_str("0x0000000000000000000000000000000000000000000000000000000000000003")
-                .unwrap(),
             (
+                (
+                    String::from_str(
+                        "0x000000fb7946012d6ac80c95db7b19b14ac3afc74628b0eb7743acaa66da26ca",
+                    )
+                    .unwrap(),
+                    String::from_str(
+                        "0x000000d3e220f014c2033d071f054dfb8fbed70494eab7055dc832e7293b2a8b",
+                    )
+                    .unwrap(),
+                    String::from_str(
+                        "0x0000000000000000000000000000000000000000000000000000000000000001",
+                    )
+                    .unwrap(),
+                ),
                 String::from_str(
-                    "0x0000018dd170c7fc91443bee679cc20b0ca53342abc20fb184fe8b6a25701fa5",
+                    "0x0000000000000000000000000000000000000000000000000000000000000064",
                 )
                 .unwrap(),
-                String::from_str(
-                    "0x000000917e9e565076614ee7255f38650c3410cade1cad62c22a367700212d4b",
-                )
-                .unwrap(),
-                String::from_str(
-                    "0x0000000000000000000000000000000000000000000000000000000000000001",
-                )
-                .unwrap(),
+                (
+                    String::from_str(
+                        "0x0000009e1bf51cc7587404389afdfb96ffaa7c770ca4efe5cbcd7f74dc3e80cb",
+                    )
+                    .unwrap(),
+                    String::from_str(
+                        "0x000000688b323a0497b654e11ecdbb22ecd20642ef7f928821d8c9ca21dbaf32",
+                    )
+                    .unwrap(),
+                    String::from_str(
+                        "0x0000000000000000000000000000000000000000000000000000000000000001",
+                    )
+                    .unwrap(),
+                ),
             ),
-        )];
+            (
+                (
+                    String::from_str(
+                        "0x000000fb7946012d6ac80c95db7b19b14ac3afc74628b0eb7743acaa66da26ca",
+                    )
+                    .unwrap(),
+                    String::from_str(
+                        "0x000000d3e220f014c2033d071f054dfb8fbed70494eab7055dc832e7293b2a8b",
+                    )
+                    .unwrap(),
+                    String::from_str(
+                        "0x0000000000000000000000000000000000000000000000000000000000000001",
+                    )
+                    .unwrap(),
+                ),
+                String::from_str(
+                    "0x0000017c14c59e6253fa1903f05141fd556d02d1aec2c77b038098981ecf8166",
+                )
+                .unwrap(),
+                (
+                    String::from_str(
+                        "0x000001b28c591e7773e37179530ffa59fb2c531c39bd4f1715596cdbd1892568",
+                    )
+                    .unwrap(),
+                    String::from_str(
+                        "0x0000005f46e4100332eea099da75d3435cd77ba6be13c06f559cef4ba0d06fa9",
+                    )
+                    .unwrap(),
+                    String::from_str(
+                        "0x0000000000000000000000000000000000000000000000000000000000000001",
+                    )
+                    .unwrap(),
+                ),
+            ),
+        ];
         for (u_hex_string, v_hex_string, w_expected_hex_string) in test_data {
             let (u, v, w_expected) = (
                 ProjectivePoint {
