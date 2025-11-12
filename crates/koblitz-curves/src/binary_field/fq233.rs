@@ -243,7 +243,6 @@ impl Sub<Self> for Fq233 {
 }
 
 impl BinaryField<N> for Fq233 {
-    const M: usize = M;
     // f(X) = X^233 + r(X), where r(X) = X^74 + 1
     const F: BinaryPolynomial<N> = BinaryPolynomial([1, 0, 1024, 0, 0, 0, 0, 512]);
     // \sqrt(X) = X^228 + X^191 + X^154 + X^117 + X^69 + X^32
@@ -307,7 +306,7 @@ impl BinaryField<N> for Fq233 {
     fn trace(&self) -> Self {
         let mut result = *self;
         let mut sq = *self;
-        for _ in 1..Self::M {
+        for _ in 1..M {
             sq = sq.squaring();
             result = result + sq;
         }

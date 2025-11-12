@@ -9,7 +9,7 @@ pub mod word;
 pub const M: usize = 233;
 pub const N: usize = 8;
 
-use polynomial::{BinaryPolynomial, BinaryPolynomial2, WORD_SIZE};
+use polynomial::{BinaryPolynomial, BinaryPolynomial2};
 use std::fmt::Debug;
 use std::ops::{Add, Div, Mul, Neg, Sub};
 
@@ -27,7 +27,6 @@ pub trait BinaryField<const N: usize>:
 {
     // irreducible binary polynomial: f(X) = X^M + R(X) where M is the degree of binary polynomial, and R(X) is residual polynomial
     // which M <= N * WORD_SIZE, and deg(R) < M
-    const M: usize;
     const F: BinaryPolynomial<N>;
     // sqrt(X) = X^{(M + 1) / 2} + X^((k + 1) / 2) when irreducible polynomial m(X) is a trinomial X^M + x^k + 1 and k is a odd number
     const SQ: BinaryPolynomial<N>;
