@@ -1,3 +1,4 @@
+#![allow(unused)]
 use crate::tau_expansion::Norm;
 use crate::tau_expansion::integer_quadratic::{IntegerBaseField, IntegerQuadraticField};
 use crate::tau_expansion::tau::TauQuadratic;

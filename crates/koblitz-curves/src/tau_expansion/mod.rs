@@ -1,3 +1,4 @@
+#![allow(unused)]
 pub mod integer_quadratic;
 pub mod rational_quadratic;
 pub mod scalar_field;

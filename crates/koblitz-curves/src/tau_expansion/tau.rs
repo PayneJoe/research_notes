@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use crate::tau_expansion::integer_quadratic::{BIAS, IntegerBaseField, IntegerQuadraticField, MU};
 use crate::tau_expansion::{Canonical, Modulos};
 use core::ops::{Add, Div, Mul, Neg, Sub};
@@ -341,19 +343,19 @@ mod tests {
     // ring Z[\tau] / \tau^k is isomorphic to Z / 2^k, exists a map: \varphi(\tau) = h_k
     #[test]
     fn test_hw() {
-        const k: usize = 4;
-        let base_modulus = 1 << k;
+        const K: usize = 4;
+        let base_modulus = 1 << K;
         // hk = 2 * U_{k - 1} / U_k mod 2^k
         let mut l = TauLucasSequence::new();
-        for i in 0..k - 1 {
+        for i in 0..K - 1 {
             l = l.next();
             println!("U_{:?} = {:?}, U_{:?} = {:?}", i + 1, l.u0, i + 2, l.u1);
         }
-        let uk_inv = l.u1.inv_mod_pow_k(k);
+        let uk_inv = l.u1.inv_mod_pow_k(K);
         let hk = (2 * l.u0 * uk_inv).modulos(base_modulus);
 
         // Verify tau^k ≡ 0 mod (tau^2 - hk * tau + 2)
-        let tau_w = Tau::<k>::pow();
+        let tau_w = Tau::<K>::pow();
         assert_eq!(
             (tau_w.value().a0 + tau_w.value().a1 * hk).modulos(base_modulus),
             0
