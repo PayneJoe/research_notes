@@ -195,7 +195,7 @@ impl TauQuadratic {
                 r = 0;
             }
             s.push(r);
-            (n0, n1) = (n1 + n0 / 2, -n0 / 2);
+            (n0, n1) = (n1 + MU * n0 / 2, -n0 / 2);
         }
         s
     }
@@ -232,33 +232,6 @@ impl TauQuadratic {
             eta = quo;
         }
         result
-    }
-
-    pub fn to_canonical_expansion<const W: usize>(&self) -> TauExpansion<W> {
-        if self.is_canonical() {
-            return TauExpansion::from(*self);
-        }
-        let mut v_mut = TauExpansion::<W>::from(*self);
-        let tau_minus_tau_squared = TauQuadratic::from_tau() - Tau::<2>::pow();
-
-        while v_mut.is_canonical() == false {
-            (0..W)
-                .map(|i| {
-                    let coeff = v_mut.0[i];
-                    if coeff.is_canonical() {
-                        TauExpansion::<W>::from_sparse(vec![(i, coeff)])
-                    } else {
-                        if coeff.abs() % 2 == 1 {
-                            let times = (coeff - 1).abs() / 2;
-                            let expanded = tau_minus_tau_squared.pow(times as u32);
-                        } else {
-                        }
-                        todo!()
-                    }
-                })
-                .collect::<Vec<_>>();
-        }
-        todo!()
     }
 }
 
@@ -326,7 +299,7 @@ mod tests {
         let nominator = Tau::<11>::pow() - TauQuadratic::one();
         let denominator = TauQuadratic::from_tau() - TauQuadratic::one();
         let (quotient, remainder) = nominator / denominator;
-        assert_eq!(quotient, TauQuadratic::new(23, -22));
+        assert_eq!(quotient, TauQuadratic::new(23, 0));
         assert_eq!(remainder, TauQuadratic::zero());
     }
 
@@ -343,7 +316,7 @@ mod tests {
     // ring Z[\tau] / \tau^k is isomorphic to Z / 2^k, exists a map: \varphi(\tau) = h_k
     #[test]
     fn test_hw() {
-        const K: usize = 4;
+        const K: usize = 5;
         let base_modulus = 1 << K;
         // hk = 2 * U_{k - 1} / U_k mod 2^k
         let mut l = TauLucasSequence::new();
@@ -360,5 +333,7 @@ mod tests {
             (tau_w.value().a0 + tau_w.value().a1 * hk).modulos(base_modulus),
             0
         );
+        let (_, t) = TauQuadratic::from(15) / tau_w;
+        println!("---- t = {:?} {:?}", t, t.to_naf());
     }
 }

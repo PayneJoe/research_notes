@@ -47,7 +47,7 @@ impl Modulos for IntegerBaseField {
 /// 1) \tau + \bar{\tau} = \mu
 /// 2) \tau * \bar{\tau} = bias = 2
 // pub const MU: IntegerBaseField = -1;
-pub const MU: IntegerBaseField = 1;
+pub const MU: IntegerBaseField = -1;
 pub const BIAS: IntegerBaseField = 2;
 
 impl AsRational for IntegerBaseField {

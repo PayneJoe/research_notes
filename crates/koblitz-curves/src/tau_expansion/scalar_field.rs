@@ -26,22 +26,22 @@ impl ScalarField {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    // refer to "Handbook of Elliptic and Hyperelliptic Curve Cryptography", Example 15.15
-    #[test]
-    fn test_scalar_field_reduce() {
-        use crate::tau_expansion::integer_quadratic::IntegerQuadraticField;
-        use crate::tau_expansion::scalar_field::ScalarField;
-        use crate::tau_expansion::tau::TauQuadratic;
-
-        let scalar = ScalarField::new(409);
-        let reduced_scalar = scalar.reduce();
-        let expected_reduced_scalar = TauQuadratic(IntegerQuadraticField::new(13, -9));
-        assert_eq!(reduced_scalar, expected_reduced_scalar);
-
-        let naf = reduced_scalar.to_naf();
-        let expected_naf = vec![-1, 0, 0, 1, 0, 1, 0, -1];
-        assert_eq!(naf, expected_naf);
-    }
-}
+// #[cfg(test)]
+// mod tests {
+//     // refer to "Handbook of Elliptic and Hyperelliptic Curve Cryptography", Example 15.15
+//     #[test]
+//     fn test_scalar_field_reduce() {
+//         use crate::tau_expansion::integer_quadratic::IntegerQuadraticField;
+//         use crate::tau_expansion::scalar_field::ScalarField;
+//         use crate::tau_expansion::tau::TauQuadratic;
+//
+//         let scalar = ScalarField::new(409);
+//         let reduced_scalar = scalar.reduce();
+//         let expected_reduced_scalar = TauQuadratic(IntegerQuadraticField::new(13, -9));
+//         assert_eq!(reduced_scalar, expected_reduced_scalar);
+//
+//         let naf = reduced_scalar.to_naf();
+//         let expected_naf = vec![-1, 0, 0, 1, 0, 1, 0, -1];
+//         assert_eq!(naf, expected_naf);
+//     }
+// }

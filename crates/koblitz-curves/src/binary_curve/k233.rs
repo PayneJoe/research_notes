@@ -1,4 +1,5 @@
-use super::{BinaryCurve, ProjectivePoint};
+/// Instantiation of Binary Curve with K-233, E(\bar{K}): x^2 + xy = x^3 + 1, where \bar{K} = GF(2)[X] / X^233 + X^74 + 1
+use super::curve::{BinaryCurve, ProjectivePoint};
 use crate::binary_field::{N, fq233::Fq233, polynomial::BinaryPolynomial};
 use std::marker::PhantomData;
 
@@ -32,7 +33,7 @@ mod tests {
     use std::str::FromStr;
 
     use super::*;
-    use crate::binary_curve::ProjectivePoint;
+    use crate::binary_curve::curve::ProjectivePoint;
 
     #[test]
     fn test_is_on_curve() {
