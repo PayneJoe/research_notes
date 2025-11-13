@@ -5,7 +5,17 @@ use std::ops::{Add, Div, Mul, Neg, Sub};
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Default, Ord, PartialOrd)]
 pub struct Z(pub i64);
 
+impl From<Z> for usize {
+    fn from(v: Z) -> Self {
+        v.0.abs() as usize
+    }
+}
+
 impl Z {
+    fn signum(&self) -> Self {
+        Z(self.0.signum())
+    }
+
     fn abs(&self) -> Self {
         Z(self.0.abs())
     }
@@ -84,7 +94,7 @@ impl Neg for Z {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////// Integer tau expansion
-// Integer ring in terms of characteristic polynomial of K-233 curve, Z[\tau] = Z[X] / \tau^2 - \mu * \tau + 2
+// Integer ring in terms of characteristic polynomial of K-233 curve, Z[\tau] = Z / \tau^2 - \mu * \tau + 2
 #[derive(Clone, Copy, Eq, PartialEq, Debug)]
 pub struct ZTau {
     pub a0: Z,
@@ -101,16 +111,23 @@ impl ZTau {
     pub fn new(a0: Z, a1: Z) -> Self {
         Self { a0, a1 }
     }
+
+    pub fn is_zero(&self) -> bool {
+        *self == Self::zero()
+    }
+
     // reduce with a modulus, usually we use \tau^w
     pub fn reduce(&self, modulus: Self) -> Self {
         (*self / modulus).1
     }
-    // convert Z[\tau] to NAF expansion
+
+    // convert Z[\tau] to tauNAF expansion
     pub fn tauNAF(&self) -> Vec<Z> {
         let mut result = vec![];
         let (mut n0, mut n1) = (self.a0, self.a1);
         while n0.abs() + n1.abs() != Z(0) {
             let ri = if n0.is_odd() {
+                // ensure r_i = +1 or -1, since (n0 - 2 * n1) % 4 = 1 or 3
                 let residual = Z(2) - (n0 - Z(2) * n1).reduce(Z(4));
                 n0 = n0 - residual;
                 residual
@@ -119,6 +136,28 @@ impl ZTau {
             };
             result.push(ri);
             (n0, n1) = (n1 + Self::MU * n0 / Z(2), -n0 / Z(2));
+        }
+        result
+    }
+    // convert Z[\tau] to tauNAF_w expansion
+    pub fn tauNAFw(&self, w: usize) -> Vec<Z> {
+        let h_w = Self::h_w(w);
+        let (u_mod_tau_w, alpha_u) = Self::precomputed_table(w);
+        let mut result = vec![];
+        // let (mut n0, mut n1) = (self.a0, self.a1);
+        let mut t = self.clone();
+        while t.is_zero() == false {
+            let ri = if t.a0.is_odd() {
+                let u = t.isomorphism(h_w);
+                let residual = u_mod_tau_w[usize::from(u)];
+                t = if u > Z(0) { t - residual } else { t + residual };
+                alpha_u[usize::from(u)].clone()
+            } else {
+                [Z(0)].to_vec()
+            };
+            result.extend(ri.into_iter());
+            // now t is a even, then right shift w times, i.e. t = t / \tau^w
+            t = Self::new(t.a1 + Self::MU * t.a0 / Z(2), -t.a0 / Z(2));
         }
         result
     }
@@ -194,6 +233,10 @@ impl Tau for ZTau {
             a0: self.a0 + Self::MU * self.a1,
             a1: -self.a1,
         }
+    }
+    // Z[\tau] -> Z[2^w]
+    fn isomorphism(&self, h_w: Z) -> Z {
+        self.a0 + self.a1 * h_w
     }
 }
 

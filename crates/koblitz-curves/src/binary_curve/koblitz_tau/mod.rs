@@ -20,6 +20,8 @@ pub trait Tau: Sized {
     fn zero() -> Self;
     // map to its conjugative representation, for example, a + b * \bar{\tau} = (a + b * \mu) - b * \tau, and vice veras
     fn automorphism(&self) -> Self;
+    // map \phi_w: Z[\tau] -> Z[2^w] with a kernel element h_w, i.e. \phi_w(h_w) = 0 (mod 2^w)
+    fn isomorphism(&self, hw: Z) -> Z;
     // Z[\tau] -> Z[\bar{tau}] -> Z[\tau]
     // conjugative object, i.e. a + b * \bar{\tau} -> a + b * \tau, which is can map to Self with automorphism
     fn conjugate(&self) -> Self {

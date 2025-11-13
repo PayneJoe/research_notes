@@ -85,6 +85,9 @@ impl Tau for RTau {
     fn automorphism(&self) -> Self {
         unimplemented!()
     }
+    fn isomorphism(&self, _: Z) -> Z {
+        unimplemented!()
+    }
     fn conjugate(&self) -> Self {
         unimplemented!()
     }
