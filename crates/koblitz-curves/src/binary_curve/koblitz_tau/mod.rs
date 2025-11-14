@@ -2,8 +2,8 @@
 pub mod r_tau;
 pub mod z_tau;
 
-use self::r_tau::{R, RTau};
-use self::z_tau::{Z, ZTau, ZTauExpansion};
+pub use self::r_tau::{R, RTau};
+pub use self::z_tau::{Z, ZTau, ZTauExpansion};
 
 // N(x) = \prod_i x * x_i, where x_i are all the conjugates of x
 // For example, if x is a complex number, then there are only two conjugative numbers
