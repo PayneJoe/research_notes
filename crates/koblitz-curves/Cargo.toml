@@ -9,3 +9,4 @@ repository = { workspace = true }
 num-rational = { workspace = true }
 derive_builder = { workspace = true }
 hex = { workspace = true }
+rand = { workspace = true }

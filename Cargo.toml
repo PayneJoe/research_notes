@@ -12,7 +12,7 @@ members = ["crates/koblitz-curves"]
 num-rational = "0.4"
 derive_builder = "0.20"
 hex = "0.4"
-
+rand = "0.9.2"
 
 [profile.dev]
 opt-level = 3

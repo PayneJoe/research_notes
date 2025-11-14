@@ -212,6 +212,7 @@ impl TauQuadratic {
         let mut eta = self.clone();
         let mut r = TauExpansion::default();
         while eta.value().a0.abs() + eta.value().a1.abs() != 0 {
+            
             if eta.value().a0.modulos(2) == 1 {
                 // hw is approximate of tau mod 2^w
                 let u = (eta.value().a0 + eta.value().a1 * hw) % base_modulus;

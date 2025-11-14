@@ -292,5 +292,116 @@ impl Div<Self> for ZTau {
         (k, ro)
     }
 }
-
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#[allow(deprecated)]
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rand::{self, Rng};
+
+    #[test]
+    fn test_r_to_z() {
+        let r1 = R(Rational64::new(1, 2));
+        let r2 = R(Rational64::new(-1, 2));
+        assert!(
+            (Z::from(&r1) == Z(0)) && (Z::from(&r2) == Z(0)),
+            "Test for round(1 / 2) == round(-1 / 2) == 0 failed!"
+        );
+    }
+
+    #[test]
+    fn test_rtau_to_ztau() {
+        let u = RTau::new(R(Rational64::new(8, 5)), R(Rational64::new(12, 5)));
+        let u_expected = ZTau::new(Z(1), Z(2));
+        assert_eq!(ZTau::from(&u), u_expected, "Test for From(Rtau) failed!");
+    }
+
+    #[test]
+    fn test_ztau_mul() {
+        let (u, v, w_expected) = (
+            ZTau::new(Z(1), Z(2)),
+            ZTau::new(Z(2), Z(3)),
+            ZTau::new(Z(-10), Z(1)),
+        );
+        let w = u * v;
+        assert_eq!(w, w_expected, "Test for multiplication of ZTau failed!");
+    }
+
+    #[test]
+    fn test_ztau_div() {
+        let mut rng = rand::thread_rng();
+        for _ in 0..1000 {
+            let u = ZTau::new(
+                Z(rng.gen_range(0..10000000i64)),
+                Z(rng.gen_range(0..10000000i64)),
+            );
+            let v = ZTau::new(
+                Z(rng.gen_range(0..10000000i64)),
+                Z(rng.gen_range(0..10000000i64)),
+            );
+            let (_, ro) = u / v;
+            assert!(
+                Z(7) * ro.norm() < Z(4) * v.norm(),
+                "Test for division of ZTau failed!"
+            );
+        }
+    }
+
+    #[test]
+    fn test_tau_naf() {
+        let u = ZTau::new(Z(409), Z(0));
+        let w_expected = vec![
+            Z(1),
+            Z(0),
+            Z(0),
+            Z(-1),
+            Z(0),
+            Z(0),
+            Z(1),
+            Z(0),
+            Z(-1),
+            Z(0),
+            Z(1),
+            Z(0),
+            Z(0),
+            Z(0),
+            Z(0),
+            Z(1),
+            Z(0),
+            Z(0),
+            Z(-1),
+        ];
+        let w = u.tauNAF();
+        assert_eq!(w, w_expected, "Test for tauNAF failed!");
+        let mut result = ZTau::zero();
+        for w in (0..w_expected.len()).rev() {
+            match w_expected[w] {
+                Z(1) => result = result + ZTau::pow(w),
+                Z(-1) => result = result - ZTau::pow(w),
+                Z(0) => {}
+                _ => unreachable!(),
+            }
+        }
+        assert_eq!(result, u, "Reconfirmation of the tauNAF result failed!");
+    }
+
+    #[test]
+    fn test_tau_pow() {
+        let tau_powers = vec![
+            ZTau::one(),
+            ZTau::default(),
+            ZTau::new(Z(-2), Z(-1)),
+            ZTau::new(Z(2), Z(-1)),
+            ZTau::new(Z(2), Z(3)),
+        ];
+        for w in 0..tau_powers.len() {
+            assert_eq!(ZTau::pow(w), tau_powers[w]);
+        }
+    }
+
+    #[test]
+    fn test_tau_naf_w() {
+        todo!()
+    }
+}
