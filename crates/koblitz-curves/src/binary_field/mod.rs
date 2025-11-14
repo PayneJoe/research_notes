@@ -3,7 +3,12 @@ pub mod fq233;
 pub mod polynomial;
 pub mod word;
 
-use polynomial::{BinaryPolynomial, BinaryPolynomial2, WORD_SIZE};
+// binary field Fq233 = GF(2^m) / f(X), where m = 233 and f(X) = X^233 + X^74 + 1
+// N = 8 when word = u32
+pub const M: usize = 233;
+pub const N: usize = 8;
+
+use polynomial::{BinaryPolynomial, BinaryPolynomial2};
 use std::fmt::Debug;
 use std::ops::{Add, Div, Mul, Neg, Sub};
 
@@ -21,12 +26,7 @@ pub trait BinaryField<const N: usize>:
 {
     // irreducible binary polynomial: f(X) = X^M + R(X) where M is the degree of binary polynomial, and R(X) is residual polynomial
     // which M <= N * WORD_SIZE, and deg(R) < M
-    const M: usize;
     const F: BinaryPolynomial<N>;
-    // degree(R(X)) = k which is a small odd number
-    const R: BinaryPolynomial<N>;
-    // uk = R(X), R(X) << 1, R(X) << 2, ..., R(X) << WORD_SIZE - 1
-    const UK: [BinaryPolynomial<N>; WORD_SIZE];
     // sqrt(X) = X^{(M + 1) / 2} + X^((k + 1) / 2) when irreducible polynomial m(X) is a trinomial X^M + x^k + 1 and k is a odd number
     const SQ: BinaryPolynomial<N>;
     // reduce a big binary polynomial with a fixed irreducible binary polynomial with degree M
@@ -39,6 +39,7 @@ pub trait BinaryField<const N: usize>:
     fn bits(&self, remove: bool) -> Vec<u8>;
     fn sqrt(&self) -> Self;
     fn squaring(&self) -> Self;
+    fn trace(&self) -> Self;
 }
 
 #[allow(dead_code)]
