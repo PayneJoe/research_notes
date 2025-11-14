@@ -1,6 +1,6 @@
 use super::{LucasSequence, Norm, R, RTau, Tau};
 use num_rational::Rational64;
-use std::ops::{Add, Div, Mul, Neg, Sub};
+use std::ops::{Add, Div, Index, IndexMut, Mul, Neg, Rem, Sub};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Default, Ord, PartialOrd)]
 pub struct Z(pub i64);
@@ -92,6 +92,20 @@ impl Neg for Z {
         Self(-self.0)
     }
 }
+impl Rem for Z {
+    type Output = Self;
+    fn rem(self, modulus: Self) -> Self::Output {
+        assert!((modulus.0 % 2 == 0) && (modulus.0 > 0));
+        let (m, m_half) = (modulus.0, modulus.0 >> 1);
+        let mut result = self.0 % m;
+        if result > m_half - 1 {
+            result -= m;
+        } else if result < -m_half {
+            result += m;
+        }
+        Z(result)
+    }
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////// Integer tau expansion
 // Integer ring in terms of characteristic polynomial of K-233 curve, Z[\tau] = Z / \tau^2 - \mu * \tau + 2
@@ -108,6 +122,18 @@ impl Default for ZTau {
 }
 
 impl ZTau {
+    pub fn exp(&self, times: usize) -> Self {
+        let mut result = ZTau::one();
+        for _ in 0..times {
+            result = result * *self;
+        }
+        result
+    }
+
+    pub fn is_odd(&self) -> bool {
+        self.a0.is_odd()
+    }
+
     pub fn new(a0: Z, a1: Z) -> Self {
         Self { a0, a1 }
     }
@@ -121,43 +147,64 @@ impl ZTau {
         (*self / modulus).1
     }
 
+    // convert tauNAF expansion to Z[\tau]
+    pub fn tauNAF_reverse(data: &ZTauExpansion) -> ZTau {
+        let mut result = ZTau::zero();
+        for w in (0..data.len()).rev() {
+            match data[w] {
+                Z(1) => result = result + ZTau::pow(w),
+                Z(-1) => result = result - ZTau::pow(w),
+                Z(0) => {}
+                _ => unreachable!(),
+            }
+        }
+        result
+    }
+
     // convert Z[\tau] to tauNAF expansion
-    pub fn tauNAF(&self) -> Vec<Z> {
+    pub fn tauNAF(&self) -> ZTauExpansion {
         let mut result = vec![];
-        let (mut n0, mut n1) = (self.a0, self.a1);
-        while n0.abs() + n1.abs() != Z(0) {
-            let ri = if n0.is_odd() {
+        let mut n = self.clone();
+        while n.is_zero() == false {
+            let ri = if n.is_odd() {
                 // ensure r_i = +1 or -1, since (n0 - 2 * n1) % 4 = 1 or 3
-                let residual = Z(2) - (n0 - Z(2) * n1).reduce(Z(4));
-                n0 = n0 - residual;
+                let residual = Z(2) - (n.a0 - Z(2) * n.a1).reduce(Z(4));
+                n = n - ZTau::new(residual, Z(0));
                 residual
             } else {
                 Z(0)
             };
             result.push(ri);
-            (n0, n1) = (n1 + Self::MU * n0 / Z(2), -n0 / Z(2));
+            // now n or n0 is a even number, then we can right shift it one time, i.e. n / \tau
+            (n, _) = n / ZTau::default();
         }
-        result
+        ZTauExpansion(result)
     }
     // convert Z[\tau] to tauNAF_w expansion
-    pub fn tauNAFw(&self, w: usize) -> Vec<Z> {
+    pub fn tauNAFw(&self, w: usize) -> Vec<ZTauExpansion> {
         let h_w = Self::h_w(w);
+        let modulus = Z(1 << w);
         let (u_mod_tau_w, alpha_u) = Self::precomputed_table(w);
         let mut result = vec![];
-        // let (mut n0, mut n1) = (self.a0, self.a1);
         let mut t = self.clone();
         while t.is_zero() == false {
-            let ri = if t.a0.is_odd() {
-                let u = t.isomorphism(h_w);
-                let residual = u_mod_tau_w[usize::from(u)];
+            let ri = if t.is_odd() {
+                // residual must be an even number, then we can remove it from T, notice the sign of this residual
+                let u = t.isomorphism(h_w) % modulus;
+                let u_index = u / Z(2);
+                let residual = u_mod_tau_w[usize::from(u_index)];
                 t = if u > Z(0) { t - residual } else { t + residual };
-                alpha_u[usize::from(u)].clone()
+                if u > Z(0) {
+                    alpha_u[usize::from(u_index)].clone()
+                } else {
+                    -alpha_u[usize::from(u_index)].clone()
+                }
             } else {
-                [Z(0)].to_vec()
+                ZTauExpansion(vec![])
             };
-            result.extend(ri.into_iter());
-            // now t is a even, then right shift w times, i.e. t = t / \tau^w
-            t = Self::new(t.a1 + Self::MU * t.a0 / Z(2), -t.a0 / Z(2));
+            result.push(ri);
+            // now t is a even, then right shift one time, i.e. t = t / \tau
+            (t, _) = t / ZTau::default();
         }
         result
     }
@@ -292,7 +339,49 @@ impl Div<Self> for ZTau {
         (k, ro)
     }
 }
+
+impl Neg for ZTau {
+    type Output = Self;
+    fn neg(self) -> Self::Output {
+        Self {
+            a0: -self.a0,
+            a1: -self.a1,
+        }
+    }
+}
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ZTauExpansion(Vec<Z>);
+
+impl ZTauExpansion {
+    fn len(&self) -> usize {
+        self.0.len()
+    }
+}
+
+impl Index<usize> for ZTauExpansion {
+    type Output = Z;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        assert!(index < self.0.len());
+        &self.0[index]
+    }
+}
+
+impl IndexMut<usize> for ZTauExpansion {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        assert!(index < self.0.len());
+        &mut self.0[index]
+    }
+}
+
+impl Neg for ZTauExpansion {
+    type Output = Self;
+    fn neg(self) -> Self {
+        Self(self.0.into_iter().map(|v| -v).collect::<Vec<_>>())
+    }
+}
 
 #[allow(deprecated)]
 #[cfg(test)]
@@ -351,39 +440,12 @@ mod tests {
     #[test]
     fn test_tau_naf() {
         let u = ZTau::new(Z(409), Z(0));
-        let w_expected = vec![
-            Z(1),
-            Z(0),
-            Z(0),
-            Z(-1),
-            Z(0),
-            Z(0),
-            Z(1),
-            Z(0),
-            Z(-1),
-            Z(0),
-            Z(1),
-            Z(0),
-            Z(0),
-            Z(0),
-            Z(0),
-            Z(1),
-            Z(0),
-            Z(0),
-            Z(-1),
-        ];
         let w = u.tauNAF();
-        assert_eq!(w, w_expected, "Test for tauNAF failed!");
-        let mut result = ZTau::zero();
-        for w in (0..w_expected.len()).rev() {
-            match w_expected[w] {
-                Z(1) => result = result + ZTau::pow(w),
-                Z(-1) => result = result - ZTau::pow(w),
-                Z(0) => {}
-                _ => unreachable!(),
-            }
-        }
-        assert_eq!(result, u, "Reconfirmation of the tauNAF result failed!");
+        assert_eq!(
+            ZTau::tauNAF_reverse(&w),
+            u,
+            "Reconfirmation of the tauNAF result failed!"
+        );
     }
 
     #[test]
@@ -402,6 +464,37 @@ mod tests {
 
     #[test]
     fn test_tau_naf_w() {
-        todo!()
+        let w = 4;
+        let d = 11;
+        let u = ZTau::new(Z(409), Z(0));
+
+        // delta = (\tau^d - 1) / (\tau - 1)
+        let delta = ZTau::delta(d);
+        let n = u.reduce(delta);
+
+        // test h_w is in the kernel of map \phi_w: Z[\tau] -> Z[2^w]
+        let h_w = ZTau::h_w(w);
+        let tau_w = ZTau::pow(w);
+        assert_eq!(tau_w.isomorphism(h_w) % Z(1 << w), Z(0));
+
+        if ZTau::MU == Z(1) {
+            let n_naf_w = n.tauNAFw(w);
+            assert_eq!(
+                n_naf_w,
+                vec![
+                    ZTauExpansion(vec![Z(-1), Z(0), Z(0), Z(-1)]),
+                    ZTauExpansion(vec![]),
+                    ZTauExpansion(vec![]),
+                    ZTauExpansion(vec![]),
+                    ZTauExpansion(vec![Z(1), Z(0), Z(0), Z(1)]),
+                    ZTauExpansion(vec![]),
+                    ZTauExpansion(vec![]),
+                    ZTauExpansion(vec![]),
+                    ZTauExpansion(vec![Z(1), Z(0), Z(1)])
+                ],
+            );
+        } else {
+            assert!(true, "No test case here!")
+        }
     }
 }

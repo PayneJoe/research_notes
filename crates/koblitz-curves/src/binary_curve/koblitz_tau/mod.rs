@@ -3,7 +3,7 @@ pub mod r_tau;
 pub mod z_tau;
 
 use self::r_tau::{R, RTau};
-use self::z_tau::{Z, ZTau};
+use self::z_tau::{Z, ZTau, ZTauExpansion};
 
 // N(x) = \prod_i x * x_i, where x_i are all the conjugates of x
 // For example, if x is a complex number, then there are only two conjugative numbers
@@ -30,6 +30,7 @@ pub trait Tau: Sized {
     //////////////////////////////////////// For Window-based Tau-adic Expansion
     // \tau^w = U_w * \tau - U_{w - 1} * BIAS, where w is the window size
     fn pow(w: usize) -> ZTau {
+        assert!(w < 64, "Degree is too big!");
         if w == 0 {
             return ZTau::one();
         }
@@ -49,7 +50,7 @@ pub trait Tau: Sized {
         (Z(2) * u_w_minus_1 * u_w_inv).reduce(modulus)
     }
     // u (mod \tau^w), \alpha_u = tauNAF(u mod \tau^w)
-    fn precomputed_table(w: usize) -> (Vec<ZTau>, Vec<Vec<Z>>) {
+    fn precomputed_table(w: usize) -> (Vec<ZTau>, Vec<ZTauExpansion>) {
         let tau_w = Self::pow(w);
         let u_mod_tau_w = (1..(1 << (w - 1)))
             .step_by(2)
@@ -57,6 +58,14 @@ pub trait Tau: Sized {
             .collect::<Vec<_>>();
         let alpha_u = u_mod_tau_w.iter().map(|v| v.tauNAF()).collect::<Vec<_>>();
         (u_mod_tau_w, alpha_u)
+    }
+    // \delta = (\tau^M - 1) / (\tau - 1), where M is the degree of binary field
+    fn delta(d: usize) -> ZTau {
+        let denominator = ZTau::pow(d) - ZTau::one();
+        let nominator = ZTau::default() - ZTau::one();
+        let (delta, remainder) = denominator / nominator;
+        assert_eq!(remainder, ZTau::zero(), "Computing Delta failed!");
+        delta
     }
 }
 
