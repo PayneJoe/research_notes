@@ -1,2 +1,2 @@
 # research_notes
-Notes for applied cryptographic research on zero knowledge, bitcoin protocols
+Elementary and applied cryptographic research on zero knowledge
